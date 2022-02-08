@@ -1,6 +1,8 @@
 
 
 def main():
-    print("Hello World!")
+    print_statement = "Hello World!"
+
+    print(print_statement)
     
 main()
