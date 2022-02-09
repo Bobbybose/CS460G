@@ -1,43 +1,65 @@
 # Author: Bobby Bose
 # Assignment 1: Decision Trees
 
-from xml.dom.minidom import Attr
+
+# Imports
 import numpy as np
 import math
 
+
+# Global variables
 MAX_DEPTH = 3
 
 
+# Data Class
+# Description: Each data sample is stored in a Data class
 class Data:
-    # {Attribute_Type: Attribute_Value}
+    # Holds attributes and values in a dictionary structure
+    #   {Attribute_Type: Attribute_Value}
     attribute_values = {}
+
+    # Holds the value for the class label
     class_label_value = ""
 
+
+# Attribute Class
+# Description: Each attribute is stored in a Attribute class
 class Attribute:
-    # List of values
+    # List of possible values
     values = np.array([])
 
+    # Initialize attribute and store name (attribute label)
     def __init__(self, attribute_name):
         self.attribute_name = attribute_name
 
 
+# Class_Label Class
+# Description: The class_label (Target Attribute) for a dataset
 class Class_Label:
     # Set the positive and negative label values at initialization
     def __init__(self, positive_label, negative_label):
         self.positive_label = positive_label
         self.negative_label = negative_label
 
+
+# Node Class
+# Description: Nodes (leaves) of the tree are stored in Node class
 class Node:
-    
-    attribute = Attribute()
+    # Attribute splitting on
+    attribute = ""
+    # Array of Branch objects that connect this Node to child nodes
     branches = np.array([])
         
-class Branch:
 
+# Branch Class
+# Description: Branches connect parent and child nodes together
+class Branch:
+    # When initialized, set the parent node, and the branch value of the feature parent node splits on
     def __init__(self, parent, feature_value):
         self.parent = parent
         self.feature_value = feature_value
 
+    # Set child node. Can not happen till after initialization in decision tree creation
     def add_child(self, child):
         self.child = child
 
