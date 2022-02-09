@@ -11,7 +11,6 @@ import math
 MAX_DEPTH = 3
 
 
-# Data Class
 # Description: Each data sample is stored in a Data class
 class Data:
     # Holds attributes and values in a dictionary structure
@@ -22,7 +21,6 @@ class Data:
     class_label_value = ""
 
 
-# Attribute Class
 # Description: Each attribute is stored in a Attribute class
 class Attribute:
     # List of possible values
@@ -33,7 +31,6 @@ class Attribute:
         self.attribute_name = attribute_name
 
 
-# Class_Label Class
 # Description: The class_label (Target Attribute) for a dataset
 class Class_Label:
     # Set the positive and negative label values at initialization
@@ -42,7 +39,6 @@ class Class_Label:
         self.negative_label = negative_label
 
 
-# Node Class
 # Description: Nodes (leaves) of the tree are stored in Node class
 class Node:
     # Attribute splitting on
@@ -51,7 +47,6 @@ class Node:
     branches = np.array([])
         
 
-# Branch Class
 # Description: Branches connect parent and child nodes together
 class Branch:
     # When initialized, set the parent node, and the branch value of the feature parent node splits on
@@ -68,14 +63,22 @@ def main():
     create_decision_tree()    
     
 
+# Description: Main decision tree creation function. Equivalent to ID3
+# Arguments: dataset (examples), class label for the dataset, array of attribute objects
+# Returns: Root of the current tree (subtree starting at root)
 def create_decision_tree(dataset, class_label, attributes):
     
+    # Root node of the tree beginning here
     root = Node()
 
+    # Checking if there is only one type of class label left
+    #   If so, set it to the root's attribute and return
     if num_unique_labels_in_dataset(dataset) == 1:
         root.attribute = dataset[0].class_label_value
         return root
     
+    # Checking if there are no more attributes left
+    #   If so, return the most common class label value
     if attributes.size == 0:
         root.attribute = most_common_class_label_value(dataset, class_label)
         return root
@@ -83,10 +86,17 @@ def create_decision_tree(dataset, class_label, attributes):
         root.attribute = best_attribute(attributes)
         
     
-
+# Description: Checks if there is only one class label value left in the dataset
+# Arguments: dataset (examples)
+# Returns: Number of unique class labels in the dataset
 def num_unique_labels_in_dataset(dataset):
+    
+    # Store number of unique labels (Theoretically only 1 or 2)
     num_unique_labels = 0
+    # Stores the different label values left 
     labels = np.array([])
+
+    # Cycling through all the data and storing unique labels
     for data in dataset:
         if not data.class_label_value in labels:
             num_unique_labels += 1
@@ -96,6 +106,9 @@ def num_unique_labels_in_dataset(dataset):
 # num_unique_labels_in_dataset
 
 
+# Description: Finds and returns the most common class label value in the dataset
+# Arguments: dataset (examples), class label for the dataset
+# Returns: Most common class label value in the dataset
 def most_common_class_label_value(dataset, class_label):
 
     # Keep track of number of occurrences of each class_label value    
@@ -124,7 +137,11 @@ def most_common_class_label_value(dataset, class_label):
 # most_common_label_value
 
 
+# Description: Calculates how many positive and negative class labels are in the dataset
+# Arguments: dataset (examples), class label for the dataset
+# Returns: Number of positive and negative class label occurrences in the dataset
 def class_label_occurrences(dataset, class_label):
+    # Stores numbers of positive/negative class label occurrences
     num_positive = 0
     num_negative = 0
   
@@ -137,23 +154,33 @@ def class_label_occurrences(dataset, class_label):
             num_negative += 1
 
     return num_positive, num_negative
+# class_label_occurrences
 
 
+# Description: Selects the best attribute to split on at this position in the tree
+# Arguments: dataset (examples), class label for the dataset, array of attribute objects
+# Returns: The best attribute to split on
 def best_attribute(dataset, class_label, attributes):
 
-    best_attribute = Attribute()
+    best_attribute = ""
     best_info_gain = 0
 
-    for attr in attributes:
-        curr_info_gain = information_gain(dataset, class_label, attr)
+    # Cycling through all the attributes and calculating the information gain
+    for attribute in attributes:
+        curr_info_gain = information_gain(dataset, class_label, attribute)
 
+        # If the information gain 
         if curr_info_gain > best_info_gain:
             best_info_gain = curr_info_gain
-            best_attribute = attr
+            best_attribute = attribute
 
     return best_attribute
 # best_attribute()
 
+
+# Description: 
+# Arguments: dataset (examples), class label for the dataset
+# Returns:
 def information_gain(dataset, class_label, chosen_attribute):
     attribute_value_count = {}
 
@@ -173,6 +200,9 @@ def information_gain(dataset, class_label, chosen_attribute):
     return entropy(dataset, class_label) - average_child_entropy
 
 
+# Description: 
+# Arguments: 
+# Returns:
 def split_dataset(dataset, chosen_attribute, chosen_attribute_value):
     
     new_dataset = np.array([])
@@ -185,6 +215,9 @@ def split_dataset(dataset, chosen_attribute, chosen_attribute_value):
 # split_dataset()
 
 
+# Description: 
+# Arguments: dataset (examples), class label for the dataset
+# Returns:
 def entropy(dataset, class_label):   
     # Retrieving class_label split
     num_positive, num_negative = class_label_occurrences(dataset, class_label)
