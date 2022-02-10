@@ -16,7 +16,6 @@ class Data:
     # Holds attributes and values in a dictionary structure
     #   {Attribute_Type: Attribute_Value}
     attribute_values = {}
-
     # Holds the value for the class label
     class_label_value = ""
 
@@ -49,24 +48,23 @@ class Node:
 
 # Description: Branches connect parent and child nodes together
 class Branch:
-    # When initialized, set the parent node, and the branch value of the feature parent node splits on
-    def __init__(self, parent, feature_value):
+    # Child node
+    child = Node()
+    
+    # When initialized, set the parent node, and the branch value of the attribute parent node splits on
+    def __init__(self, parent, attribute_value):
         self.parent = parent
-        self.feature_value = feature_value
-
-    # Set child node. Can not happen till after initialization in decision tree creation
-    def add_child(self, child):
-        self.child = child
+        self.attribute_value = attribute_value
 
 
 def main():
-    create_decision_tree()    
+    ID3()    
     
 
 # Description: Main decision tree creation function. Equivalent to ID3
 # Arguments: dataset (examples), class label for the dataset, array of attribute objects
 # Returns: Root of the current tree (subtree starting at root)
-def create_decision_tree(dataset, class_label, attributes):
+def ID3(dataset, class_label, attributes):
     
     # Root node of the tree beginning here
     root = Node()
@@ -83,9 +81,23 @@ def create_decision_tree(dataset, class_label, attributes):
         root.attribute = most_common_class_label_value(dataset, class_label)
         return root
     else:
-        root.attribute = best_attribute(attributes)
-        
+        splitting_attribute = best_attribute(attributes)
+        root.attribute = splitting_attribute
+
+        for attribute_value in attributes[splitting_attribute]:
+            new_branch = Branch(root, attribute_value)
+            subset = split_dataset(dataset, splitting_attribute, attribute_value)
+
+            if subset.size == 0:
+                new_node = Node()
+                new_node.attribute = most_common_class_label_value(dataset, class_label)
+            else:
+                attributes = attributes[attributes != root.attribute]
+                create_decision_tree(subset, class_label, attributes)    
     
+    return root
+
+
 # Description: Checks if there is only one class label value left in the dataset
 # Arguments: dataset (examples)
 # Returns: Number of unique class labels in the dataset
@@ -141,6 +153,7 @@ def most_common_class_label_value(dataset, class_label):
 # Arguments: dataset (examples), class label for the dataset
 # Returns: Number of positive and negative class label occurrences in the dataset
 def class_label_occurrences(dataset, class_label):
+   
     # Stores numbers of positive/negative class label occurrences
     num_positive = 0
     num_negative = 0
@@ -178,10 +191,12 @@ def best_attribute(dataset, class_label, attributes):
 # best_attribute()
 
 
-# Description: 
-# Arguments: dataset (examples), class label for the dataset
-# Returns:
+# Description: Calculate information gain for splitting on an attribute
+# Arguments: dataset (examples), class label for the dataset, attribute splitting on
+# Returns: Information gain value for given attribute
 def information_gain(dataset, class_label, chosen_attribute):
+  
+    # Track number of occurrences of each value of the chosen attribute in the dataset
     attribute_value_count = {}
 
     for value in chosen_attribute.values:
@@ -190,23 +205,25 @@ def information_gain(dataset, class_label, chosen_attribute):
     for data in dataset:
         attribute_value_count[data.attribute_values[chosen_attribute]] += 1
 
+    #Calculating Entropy
     average_child_entropy = 0
 
     for value in attribute_value_count:
+        # Obtaining subset of dataset split on chosen attribute
         new_dataset = split_dataset(dataset, chosen_attribute, value)
-        
         average_child_entropy += (attribute_value_count[value]/dataset) * entropy(new_dataset, class_label)
 
     return entropy(dataset, class_label) - average_child_entropy
 
 
-# Description: 
-# Arguments: 
-# Returns:
+# Description: Splits a dataset based on the value of a given attribute
+# Arguments: dataset (examples), attribute splitting on, attribute value wanted
+# Returns: New dataset split on given attribute
 def split_dataset(dataset, chosen_attribute, chosen_attribute_value):
     
     new_dataset = np.array([])
     
+    #Spliting dataset based on given attribute and storing data with chosen_attribute_value
     for data in dataset:
         if data.attribute_values[chosen_attribute.attribute_name] == chosen_attribute_value:
             new_dataset.append(data)
@@ -215,10 +232,11 @@ def split_dataset(dataset, chosen_attribute, chosen_attribute_value):
 # split_dataset()
 
 
-# Description: 
+# Description: Calculates entropy for a dataset
 # Arguments: dataset (examples), class label for the dataset
-# Returns:
+# Returns: Entropy of dataset
 def entropy(dataset, class_label):   
+    
     # Retrieving class_label split
     num_positive, num_negative = class_label_occurrences(dataset, class_label)
 
