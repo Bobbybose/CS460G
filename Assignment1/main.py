@@ -61,7 +61,7 @@ def main():
     ID3()    
     
 
-# Description: Main decision tree creation function. Equivalent to ID3
+# Description: Main decision tree creation function.
 # Arguments: dataset (examples), class label for the dataset, array of attribute objects
 # Returns: Root of the current tree (subtree starting at root)
 def ID3(dataset, class_label, attributes):
