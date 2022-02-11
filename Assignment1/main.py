@@ -3,8 +3,13 @@
 
 
 # Imports
+from hashlib import new
+import pdb
+from attr import attr
 import numpy as np
 import math
+import pandas as pd
+pd.options.display.max_rows = 1000
 
 
 # Global variables
@@ -18,6 +23,13 @@ class Data:
     attribute_values = {}
     # Holds the value for the class label
     class_label_value = ""
+
+    def __str__(self):
+        output_string = ""
+        for attribute in self.attribute_values:
+            output_string += attribute + ": " + self.attribute_values[attribute] + " "
+
+        return output_string
 
 
 # Description: Each attribute is stored in a Attribute class
@@ -58,8 +70,38 @@ class Branch:
 
 
 def main():
-    ID3()    
+
+    # Reading in synthetic data
+    synthetic_data_1 = pd.read_csv("datasets/synthetic-1.csv", delimiter = ",", names = ["x", "y", "label"])
+    #synthetic_data_2 = pd.read_csv("datasets/synthetic-2.csv", delimiter = ",", names = ["x", "y", "label"])
+    #synthetic_data_3 = pd.read_csv("datasets/synthetic-3.csv", delimiter = ",", names = ["x", "y", "label"])
+    #synthetic_data_4 = pd.read_csv("datasets/synthetic-4.csv", delimiter = ",", names = ["x", "y", "label"])
+
+    #synthetic_data_parts = [synthetic_data_1, synthetic_data_2, synthetic_data_3, synthetic_data_4]
+    #synthetic_data_full = pd.concat(synthetic_data_parts)
+
+    dataset = parse_data(synthetic_data_1)
+
+    for data in dataset: 
+        print(dataset)
+    #ID3()    
     
+
+def parse_data(dataframe_dataset):
+    
+    dataset = np.array([])
+
+    for index, row in dataframe_dataset.iterrows():
+
+        new_data = Data()
+
+        for column in dataframe_dataset.columns:
+            Data.attribute_values[column] = row.loc[column]
+
+        dataset = np.append(dataset, new_data)
+
+    return dataset
+
 
 # Description: Main decision tree creation function.
 # Arguments: dataset (examples), class label for the dataset, array of attribute objects
@@ -93,7 +135,7 @@ def ID3(dataset, class_label, attributes):
                 new_node.attribute = most_common_class_label_value(dataset, class_label)
             else:
                 attributes = attributes[attributes != root.attribute]
-                create_decision_tree(subset, class_label, attributes)    
+                ID3(subset, class_label, attributes)    
     
     return root
 
