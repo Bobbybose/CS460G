@@ -6,6 +6,7 @@
 from hashlib import new
 import pdb
 from attr import attr
+from matplotlib.pyplot import cla
 import numpy as np
 import math
 import pandas as pd
@@ -14,6 +15,7 @@ pd.options.display.max_rows = 1000
 
 # Global variables
 MAX_DEPTH = 3
+SYNTHETIC_CLASS_LABEL = "label"
 
 
 # Description: Each data sample is stored in a Data class
@@ -21,14 +23,23 @@ class Data:
     # Holds attributes and values in a dictionary structure
     #   {Attribute_Type: Attribute_Value}
     attribute_values = {}
+    
+    # Class label
+    class_label = ""
+
     # Holds the value for the class label
     class_label_value = ""
+
+    def __init__(self, attribute_values = {}, class_label = "", class_label_value = ""):
+        self.attribute_values = attribute_values
+        self.class_label = class_label
+        self.class_label_value = class_label_value
 
     def __str__(self):
         output_string = ""
         for attribute in self.attribute_values:
-            output_string += attribute + ": " + self.attribute_values[attribute] + " "
-
+            output_string += attribute + ": " + str(self.attribute_values[attribute]) + " "
+        output_string += self.class_label + ": " + str(self.class_label_value)
         return output_string
 
 
@@ -72,35 +83,44 @@ class Branch:
 def main():
 
     # Reading in synthetic data
-    synthetic_data_1 = pd.read_csv("datasets/synthetic-1.csv", delimiter = ",", names = ["x", "y", "label"])
-    #synthetic_data_2 = pd.read_csv("datasets/synthetic-2.csv", delimiter = ",", names = ["x", "y", "label"])
-    #synthetic_data_3 = pd.read_csv("datasets/synthetic-3.csv", delimiter = ",", names = ["x", "y", "label"])
-    #synthetic_data_4 = pd.read_csv("datasets/synthetic-4.csv", delimiter = ",", names = ["x", "y", "label"])
+    raw_synthetic_data_1 = pd.read_csv("datasets/synthetic-1.csv", delimiter = ",", names = ["x", "y", "label"])
+    raw_synthetic_data_2 = pd.read_csv("datasets/synthetic-2.csv", delimiter = ",", names = ["x", "y", "label"])
+    raw_synthetic_data_3 = pd.read_csv("datasets/synthetic-3.csv", delimiter = ",", names = ["x", "y", "label"])
+    raw_synthetic_data_4 = pd.read_csv("datasets/synthetic-4.csv", delimiter = ",", names = ["x", "y", "label"])
 
-    #synthetic_data_parts = [synthetic_data_1, synthetic_data_2, synthetic_data_3, synthetic_data_4]
-    #synthetic_data_full = pd.concat(synthetic_data_parts)
+    # Converting the raw data to a dict
+    raw_synthetic_dataset_dict_1 = raw_synthetic_data_1.to_dict(orient = 'index')
+    raw_synthetic_dataset_dict_2 = raw_synthetic_data_2.to_dict(orient = 'index')
+    raw_synthetic_dataset_dict_3 = raw_synthetic_data_3.to_dict(orient = 'index')
+    raw_synthetic_dataset_dict_4 = raw_synthetic_data_4.to_dict(orient = 'index')
 
-    dataset = parse_data(synthetic_data_1)
-
+    # Parsing and combining the raw data
+    #   dataset is an array of Data objects
+    dataset = parse_data(raw_synthetic_dataset_dict_1, SYNTHETIC_CLASS_LABEL)
+    dataset = np.append(dataset, parse_data(raw_synthetic_dataset_dict_2, SYNTHETIC_CLASS_LABEL))
+    dataset = np.append(dataset, parse_data(raw_synthetic_dataset_dict_3, SYNTHETIC_CLASS_LABEL))
+    dataset = np.append(dataset, parse_data(raw_synthetic_dataset_dict_4, SYNTHETIC_CLASS_LABEL))
+    
     for data in dataset: 
-        print(dataset)
-    #ID3()    
+        print(data)
+# main()
     
 
-def parse_data(dataframe_dataset):
+# Description: Parses dataset dict data into an array of Data objects
+# Arguments: Dictionary of raw data, class label for the dataset
+# Returns: Array of Data objects
+def parse_data(dataset_dict, class_label):
     
+    # Will be an array of Data objects
     dataset = np.array([])
 
-    for index, row in dataframe_dataset.iterrows():
-
-        new_data = Data()
-
-        for column in dataframe_dataset.columns:
-            Data.attribute_values[column] = row.loc[column]
-
-        dataset = np.append(dataset, new_data)
+    # Populating dataset with Data objects from the raw data
+    for index, data in dataset_dict.items():
+        class_label_value = data.pop(class_label)
+        dataset = np.append(dataset, Data(data, class_label, class_label_value))
 
     return dataset
+# parse_data()
 
 
 # Description: Main decision tree creation function.
@@ -138,6 +158,7 @@ def ID3(dataset, class_label, attributes):
                 ID3(subset, class_label, attributes)    
     
     return root
+# ID3()
 
 
 # Description: Checks if there is only one class label value left in the dataset
@@ -157,7 +178,7 @@ def num_unique_labels_in_dataset(dataset):
             labels.append(data.class_label_value)
     
     return num_unique_labels
-# num_unique_labels_in_dataset
+# num_unique_labels_in_dataset()
 
 
 # Description: Finds and returns the most common class label value in the dataset
@@ -188,7 +209,7 @@ def most_common_class_label_value(dataset, class_label):
     
     # Returning most common class label
     return most_common_value
-# most_common_label_value
+# most_common_label_value()
 
 
 # Description: Calculates how many positive and negative class labels are in the dataset
@@ -209,7 +230,7 @@ def class_label_occurrences(dataset, class_label):
             num_negative += 1
 
     return num_positive, num_negative
-# class_label_occurrences
+# class_label_occurrences()
 
 
 # Description: Selects the best attribute to split on at this position in the tree
@@ -256,6 +277,7 @@ def information_gain(dataset, class_label, chosen_attribute):
         average_child_entropy += (attribute_value_count[value]/dataset) * entropy(new_dataset, class_label)
 
     return entropy(dataset, class_label) - average_child_entropy
+# information_gain()
 
 
 # Description: Splits a dataset based on the value of a given attribute
