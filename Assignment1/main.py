@@ -88,6 +88,9 @@ def main():
 # main()
 
 
+# Description: Train and test the Decision Trees for the synthetic data
+# Arguments: None
+# Returns: 
 def synthetic_data():
 
     # Reading in synthetic data
@@ -96,9 +99,12 @@ def synthetic_data():
     synthetic_data_df_3 = pd.read_csv("datasets/synthetic-3.csv", delimiter = ",", names = ["x", "y", "class"])
     synthetic_data_df_4 = pd.read_csv("datasets/synthetic-4.csv", delimiter = ",", names = ["x", "y", "class"])
 
+    # Collect all the raw DataFrame data into one list
     raw_synthetic_data_list = [synthetic_data_df_1, synthetic_data_df_2, synthetic_data_df_3, synthetic_data_df_4]
+    # Attributes in the synthetic data
     synthetic_data_attributes = [Attribute("x"), Attribute("y")]
     
+    # Process the raw synthetic data and obtain easier-to-work-with datasets
     synthetic_data = data_processing(raw_synthetic_data_list, synthetic_data_attributes, SYNTHETIC_CLASS_LABEL)
 
     synthetic_data_trees = []
@@ -109,8 +115,12 @@ def synthetic_data():
 # synthetic_data()
 
 
+# Description: Process raw data to an easier format to work with 
+# Arguments: Array of raw DataFrame data, attributes for this selection of data, class label for the dataset
+# Returns: Processed datasets
 def data_processing(raw_data_list, data_attributes, class_label):
     
+    # To collect process datasets
     datasets = []
 
     # Discretizing the data
@@ -119,12 +129,14 @@ def data_processing(raw_data_list, data_attributes, class_label):
             datalist[attribute.attribute_name] = pd.cut(datalist[attribute.attribute_name], BINS)      
             attribute.values = datalist[attribute.attribute_name].unique()
 
+        # Converting the dataset to a dict for easier parsing
         dataset_dict = datalist.to_dict(orient = 'index')
+
+        # Parse and collect dataset information
         datasets.append(parse_data(dataset_dict, class_label))
 
     return datasets
 # data_processing()
-
 
 
 # Description: Parses dataset dict data into an array of Data objects
