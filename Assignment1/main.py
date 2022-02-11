@@ -3,8 +3,10 @@
 
 
 # Imports
+from curses import raw
 from hashlib import new
 import pdb
+from re import A
 from attr import attr
 from matplotlib.pyplot import cla
 import numpy as np
@@ -15,7 +17,8 @@ pd.options.display.max_rows = 1000
 
 # Global variables
 MAX_DEPTH = 3
-SYNTHETIC_CLASS_LABEL = "label"
+SYNTHETIC_CLASS_LABEL = "class"
+BINS = 4
 
 
 # Description: Each data sample is stored in a Data class
@@ -81,30 +84,48 @@ class Branch:
 
 
 def main():
+    synthetic_data()
+# main()
+
+
+def synthetic_data():
 
     # Reading in synthetic data
-    raw_synthetic_data_1 = pd.read_csv("datasets/synthetic-1.csv", delimiter = ",", names = ["x", "y", "label"])
-    raw_synthetic_data_2 = pd.read_csv("datasets/synthetic-2.csv", delimiter = ",", names = ["x", "y", "label"])
-    raw_synthetic_data_3 = pd.read_csv("datasets/synthetic-3.csv", delimiter = ",", names = ["x", "y", "label"])
-    raw_synthetic_data_4 = pd.read_csv("datasets/synthetic-4.csv", delimiter = ",", names = ["x", "y", "label"])
+    synthetic_data_df_1 = pd.read_csv("datasets/synthetic-1.csv", delimiter = ",", names = ["x", "y", "class"])
+    synthetic_data_df_2 = pd.read_csv("datasets/synthetic-2.csv", delimiter = ",", names = ["x", "y", "class"])
+    synthetic_data_df_3 = pd.read_csv("datasets/synthetic-3.csv", delimiter = ",", names = ["x", "y", "class"])
+    synthetic_data_df_4 = pd.read_csv("datasets/synthetic-4.csv", delimiter = ",", names = ["x", "y", "class"])
 
-    # Converting the raw data to a dict
-    raw_synthetic_dataset_dict_1 = raw_synthetic_data_1.to_dict(orient = 'index')
-    raw_synthetic_dataset_dict_2 = raw_synthetic_data_2.to_dict(orient = 'index')
-    raw_synthetic_dataset_dict_3 = raw_synthetic_data_3.to_dict(orient = 'index')
-    raw_synthetic_dataset_dict_4 = raw_synthetic_data_4.to_dict(orient = 'index')
-
-    # Parsing and combining the raw data
-    #   dataset is an array of Data objects
-    dataset = parse_data(raw_synthetic_dataset_dict_1, SYNTHETIC_CLASS_LABEL)
-    dataset = np.append(dataset, parse_data(raw_synthetic_dataset_dict_2, SYNTHETIC_CLASS_LABEL))
-    dataset = np.append(dataset, parse_data(raw_synthetic_dataset_dict_3, SYNTHETIC_CLASS_LABEL))
-    dataset = np.append(dataset, parse_data(raw_synthetic_dataset_dict_4, SYNTHETIC_CLASS_LABEL))
+    raw_synthetic_data_list = [synthetic_data_df_1, synthetic_data_df_2, synthetic_data_df_3, synthetic_data_df_4]
+    synthetic_data_attributes = [Attribute("x"), Attribute("y")]
     
-    for data in dataset: 
+    synthetic_data = data_processing(raw_synthetic_data_list, synthetic_data_attributes, SYNTHETIC_CLASS_LABEL)
+
+    synthetic_data_trees = []
+        
+
+    for data in synthetic_data[0]: 
         print(data)
-# main()
+# synthetic_data()
+
+
+def data_processing(raw_data_list, data_attributes, class_label):
     
+    datasets = []
+
+    # Discretizing the data
+    for datalist in raw_data_list:
+        for attribute in data_attributes:
+            datalist[attribute.attribute_name] = pd.cut(datalist[attribute.attribute_name], BINS)      
+            attribute.values = datalist[attribute.attribute_name].unique()
+
+        dataset_dict = datalist.to_dict(orient = 'index')
+        datasets.append(parse_data(dataset_dict, class_label))
+
+    return datasets
+# data_processing()
+
+
 
 # Description: Parses dataset dict data into an array of Data objects
 # Arguments: Dictionary of raw data, class label for the dataset
