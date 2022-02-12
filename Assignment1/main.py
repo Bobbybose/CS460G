@@ -8,7 +8,7 @@ from hashlib import new
 import pdb
 from re import A
 from attr import attr
-from matplotlib.pyplot import cla
+#from matplotlib.pyplot import cla
 import numpy as np
 import math
 import pandas as pd
@@ -108,10 +108,13 @@ def synthetic_data():
     synthetic_data = data_processing(raw_synthetic_data_list, synthetic_data_attributes, SYNTHETIC_CLASS_LABEL)
 
     synthetic_data_trees = []
-        
 
-    for data in synthetic_data[0]: 
-        print(data)
+    #for data in synthetic_data[0]:
+    #    print(data)
+
+    for datalist in synthetic_data: 
+        synthetic_data_trees.append(ID3(datalist, SYNTHETIC_CLASS_LABEL, synthetic_data_attributes))
+
 # synthetic_data()
 
 
@@ -126,7 +129,7 @@ def data_processing(raw_data_list, data_attributes, class_label):
     # Discretizing the data
     for datalist in raw_data_list:
         for attribute in data_attributes:
-            datalist[attribute.attribute_name] = pd.cut(datalist[attribute.attribute_name], BINS)      
+            datalist[attribute.attribute_name] = pd.cut(datalist[attribute.attribute_name], BINS, labels = False)      
             attribute.values = datalist[attribute.attribute_name].unique()
 
         # Converting the dataset to a dict for easier parsing
@@ -172,18 +175,18 @@ def ID3(dataset, class_label, attributes):
     
     # Checking if there are no more attributes left
     #   If so, return the most common class label value
-    if attributes.size == 0:
+    if len(attributes) == 0:
         root.attribute = most_common_class_label_value(dataset, class_label)
         return root
     else:
-        splitting_attribute = best_attribute(attributes)
+        splitting_attribute = best_attribute(dataset, class_label, attributes)
         root.attribute = splitting_attribute
 
-        for attribute_value in attributes[splitting_attribute]:
+        for attribute_value in splitting_attribute.values:
             new_branch = Branch(root, attribute_value)
             subset = split_dataset(dataset, splitting_attribute, attribute_value)
 
-            if subset.size == 0:
+            if len(subset) == 0:
                 new_node = Node()
                 new_node.attribute = most_common_class_label_value(dataset, class_label)
             else:
@@ -202,7 +205,7 @@ def num_unique_labels_in_dataset(dataset):
     # Store number of unique labels (Theoretically only 1 or 2)
     num_unique_labels = 0
     # Stores the different label values left 
-    labels = np.array([])
+    labels = []
 
     # Cycling through all the data and storing unique labels
     for data in dataset:
@@ -257,7 +260,7 @@ def class_label_occurrences(dataset, class_label):
     # Tally up occurrences for each class_label value
     for data in dataset:
         # Adding an occurrence to the current data's class_label_value
-        if data.class_label_value == class_label.positive_label:
+        if data.class_label_value == 1:
             num_positive += 1
         else:
             num_negative += 1
@@ -299,7 +302,12 @@ def information_gain(dataset, class_label, chosen_attribute):
         attribute_value_count[value] = 0
 
     for data in dataset:
-        attribute_value_count[data.attribute_values[chosen_attribute]] += 1
+        curr_attribute_value = data.attribute_values[chosen_attribute.attribute_name]
+
+        #if curr_attribute_value in attribute_value_count:
+        attribute_value_count[curr_attribute_value] += 1
+        #else:
+        #    attribute_value_count[curr_attribute_value] = 1
 
     #Calculating Entropy
     average_child_entropy = 0
@@ -307,7 +315,7 @@ def information_gain(dataset, class_label, chosen_attribute):
     for value in attribute_value_count:
         # Obtaining subset of dataset split on chosen attribute
         new_dataset = split_dataset(dataset, chosen_attribute, value)
-        average_child_entropy += (attribute_value_count[value]/dataset) * entropy(new_dataset, class_label)
+        average_child_entropy += (attribute_value_count[value]/len(dataset)) * entropy(new_dataset, class_label)
 
     return entropy(dataset, class_label) - average_child_entropy
 # information_gain()
@@ -318,7 +326,7 @@ def information_gain(dataset, class_label, chosen_attribute):
 # Returns: New dataset split on given attribute
 def split_dataset(dataset, chosen_attribute, chosen_attribute_value):
     
-    new_dataset = np.array([])
+    new_dataset = []
     
     #Spliting dataset based on given attribute and storing data with chosen_attribute_value
     for data in dataset:
@@ -341,8 +349,8 @@ def entropy(dataset, class_label):
         return 0
 
     # Calculating positive and negative class_label parts of entropy calculation
-    positive = (-num_positive/dataset.size) * (math.log(num_positive/dataset.size , 2))
-    negative = (-num_negative/dataset.size) * (math.log(num_negative/dataset.size , 2))
+    positive = (-num_positive/len(dataset)) * (math.log(num_positive/len(dataset) , 2))
+    negative = (-num_negative/len(dataset)) * (math.log(num_negative/len(dataset) , 2))
 
     # Returning positive part - negative part
     return positive - negative
