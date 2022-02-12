@@ -60,11 +60,14 @@ class Node:
     # Attribute splitting on
     attribute = Attribute()
 
-    # Value from prior split
-    value = "Root"
+    # Hold children nodes
+    child_nodes = []
 
     # Array of Branch objects that connect this Node to child nodes
     branches = []
+
+    def __init__(self, value = "Root"):
+        self.value = value
         
 
 # Description: Branches connect parent and child nodes together
@@ -95,27 +98,38 @@ def synthetic_data():
     synthetic_data_df_4 = pd.read_csv("datasets/synthetic-4.csv", delimiter = ",", names = ["x", "y", "class"])
 
     # Collect all the raw DataFrame data into one list
-    raw_synthetic_data_list = [synthetic_data_df_1, synthetic_data_df_2, synthetic_data_df_3, synthetic_data_df_4]
-    # Attributes in the synthetic data
-    synthetic_data_attributes = [Attribute("x"), Attribute("y")]
+    raw_synthetic_dataset_list = [synthetic_data_df_1, synthetic_data_df_2, synthetic_data_df_3, synthetic_data_df_4]
     
+    # Copying data to preserve original for testing
+    synthetic_dataset_list = raw_synthetic_dataset_list.copy()
+    
+    for dataset in synthetic_dataset_list:
+        dataset["x"] = pd.qcut(dataset["x"], BINS)
+        dataset["y"] = pd.qcut(dataset["y"], BINS)
+
+    # Attributes in the synthetic data
+    #synthetic_data_attributes = [Attribute("x"), Attribute("y")]
+    
+
     # Process the raw synthetic data and obtain easier-to-work-with datasets
-    synthetic_data = data_processing(raw_synthetic_data_list, synthetic_data_attributes, SYNTHETIC_CLASS_LABEL)
+    #synthetic_data = data_processing(synthetic_data_list, synthetic_data_attributes, SYNTHETIC_CLASS_LABEL)
 
     synthetic_data_trees = []
 
     #for data in synthetic_data[0]:
     #    print(data)
 
-    synthetic_data_trees.append(Decision_Tree(synthetic_data[0], SYNTHETIC_CLASS_LABEL, synthetic_data_attributes))
+    synthetic_class_label = "class"
+    synthetic_attributes = ["x", "y"]
+    synthetic_data_trees.append(Decision_Tree(synthetic_dataset_list[0], synthetic_class_label, synthetic_attributes))
 
-    #for tree in synthetic_data_trees:
-    #    print(tree)
+    for tree in synthetic_data_trees:
+        print(tree)
 
     #return 1
 
-    for datalist in synthetic_data: 
-        synthetic_data_trees.append(ID3(datalist, SYNTHETIC_CLASS_LABEL, synthetic_data_attributes))
+    #for datalist in synthetic_data: 
+    #    synthetic_data_trees.append(Decision_Tree(datalist, SYNTHETIC_CLASS_LABEL, synthetic_data_attributes))
 
 # synthetic_data()
 
@@ -131,7 +145,7 @@ def data_processing(raw_data_list, data_attributes, class_label):
     # Discretizing the data
     for datalist in raw_data_list:
         for attribute in data_attributes:
-            datalist[attribute.attribute_name] = pd.cut(datalist[attribute.attribute_name], BINS)#, labels = False)      
+            datalist[attribute.attribute_name] = pd.qcut(datalist[attribute.attribute_name], BINS)#, labels = False)      
             attribute.values = datalist[attribute.attribute_name].unique()
 
         # Converting the dataset to a dict for easier parsing
@@ -170,65 +184,51 @@ class Decision_Tree:
     # Description: Decision tree initialization. Creates tree and sets root node
     def __init__(self, dataset, class_label, attributes):
         self.root_node = self.ID3(dataset, class_label, attributes)
-
+        
 
     # Description: Main decision tree creation function.
     # Arguments: dataset (examples), class label for the dataset, array of attribute objects
     # Returns: Root of the current tree (subtree starting at root)
     def ID3(self, dataset, class_label, attributes):
 
-        # Root node of the tree beginning here
         root = Node()
 
         # Checking if there is only one type of class label left
-        #   If so, set it to the root's attribute and return
-        if self.num_unique_labels_in_dataset(dataset) == 1:
-            root.attribute = dataset[0].class_label_value
-            print("1 unique class label: " + str(root.attribute))
+        if len(dataset[class_label].unique()) == 1:
+            root.attribute = dataset.loc[0][class_label]
             return root
         
-        #if type(attributes) == 'Attribute':
-        #    print("A = 1:   Attribute = " + attributes[0].attribute_name)
-        #    return root
-
         # Checking if there are no more attributes left
-        #   If so, return the most common class label value
         if len(attributes) == 0:
-            root.attribute = self.most_common_class_label_value(dataset, class_label)
-            print("A = 0    Label: " + str(root.attribute))
+            root.attribute = dataset[class_label].mode()
             return root
               
-        # Obtaining best attribute
-        if len(attributes) == 1:
-            splitting_attribute = attributes[0]
-        else:
-            splitting_attribute = self.best_attribute(dataset, class_label, attributes)
+        # Finding best attribute to split on
+        splitting_attribute = self.best_attribute(dataset, class_label, attributes)
         
         # Setting root attribute
         root.attribute = splitting_attribute
 
         # Cycling through attribute values are creating branches
-        for attribute_value in splitting_attribute.values:
-            
-            # Creating a new branch
-            new_branch = Branch(root, attribute_value)
+        for attribute_value in dataset[splitting_attribute].values.unique():
             
             # Creating subset of dataset with current attribute_value
-            subset = self.split_dataset(dataset, splitting_attribute, attribute_value)
+            subset = dataset.loc[dataset[splitting_attribute] == attribute_value]
 
             if len(subset) == 0:
-                new_node = Node()
+                new_node = Node(attribute_value)
                 new_node.attribute = self.most_common_class_label_value(dataset, class_label)
-                new_branch.child = new_node
-                root.branches.append(new_branch)
+                root.child_nodes.append(new_node)
+
             else:
                 new_attributes = []
                 for attribute in attributes:
                     if attribute != root.attribute:
                         new_attributes.append(attribute)
-
-                new_branch.child = self.ID3(subset, class_label, new_attributes)
-                root.branches.append(new_branch)
+                
+                new_node = self.ID3(subset, class_label, new_attributes)
+                new_node.value = attribute_value
+                root.child_nodes.append(new_node)
     
         print("main root: " + root.attribute.attribute_name)
         return root
@@ -336,23 +336,21 @@ class Decision_Tree:
         # Track number of occurrences of each value of the chosen attribute in the dataset
         attribute_value_count = {}
 
-        for value in chosen_attribute.values:
-            attribute_value_count[value] = 0
+        # Filling in dict
+        for attribute_value in dataset[chosen_attribute].values.unique():
+            attribute_value_count[attribute_value] = 0
 
-        for data in dataset:
-            curr_attribute_value = data.attribute_values[chosen_attribute.attribute_name]
-
-            #if curr_attribute_value in attribute_value_count:
-            attribute_value_count[curr_attribute_value] += 1
-            #else:
-            #    attribute_value_count[curr_attribute_value] = 1
+        # Tallying occurrences
+        for index, data in dataset.iterrows():
+            attribute_value_count[data[chosen_attribute]] += 1
 
         #Calculating Entropy
         average_child_entropy = 0
 
         for value in attribute_value_count:
             # Obtaining subset of dataset split on chosen attribute
-            new_dataset = self.split_dataset(dataset, chosen_attribute, value)
+            new_dataset = dataset.loc[dataset[chosen_attribute] == value]
+
             average_child_entropy += (attribute_value_count[value]/len(dataset)) * self.entropy(new_dataset, class_label)
 
         return self.entropy(dataset, class_label) - average_child_entropy
@@ -380,18 +378,28 @@ class Decision_Tree:
     # Returns: Entropy of dataset
     def entropy(self, dataset, class_label):   
         
-        # Retrieving class_label split
-        num_positive, num_negative = self.class_label_occurrences(dataset, class_label)
+        # Stores numbers of positive/negative class label occurrences
+        num_positive = 0
+        num_negative = 0
+        
+       # Tally up occurrences for each class_label value
+        for index, data in dataset.iterrows():
+            # Adding an occurrence to the current data's class_label_value
+            if data[class_label] == 1:
+                num_positive += 1
+            else:
+                num_negative += 1 
 
+        # Case when all labels are the same
         if num_positive == 0 or num_negative == 0:
             return 0
-
+        
         # Calculating positive and negative class_label parts of entropy calculation
         positive = (-num_positive/len(dataset)) * (math.log(num_positive/len(dataset) , 2))
         negative = (-num_negative/len(dataset)) * (math.log(num_negative/len(dataset) , 2))
 
         # Returning positive part - negative part
-        return positive - negative
+        return positive + negative
     # entropy()
 
 
@@ -405,12 +413,12 @@ class Decision_Tree:
         for i in range(level):
             print("--", end='')
 
-        if len(root.branches) == 0:
+        if len(root.child_nodes) == 0:
             print(root.attribute)
 
-        for branch in root.branches:
-            print(root.attribute.attribute_name + ": " + str(branch.attribute_value))
-            self.print_tree(branch.child, level+1)
+        for child in root.child_nodes:
+            print(root.attribute.attribute_name + ": " + str(child.value))
+            self.print_tree(child, level+1)
             
 
 main()
