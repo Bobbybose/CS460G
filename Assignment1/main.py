@@ -112,8 +112,12 @@ def synthetic_data():
     #for data in synthetic_data[0]:
     #    print(data)
 
-    for datalist in synthetic_data: 
-        synthetic_data_trees.append(ID3(datalist, SYNTHETIC_CLASS_LABEL, synthetic_data_attributes))
+    synthetic_data_trees.append(ID3(synthetic_data[0], SYNTHETIC_CLASS_LABEL, synthetic_data_attributes))
+
+    return 1
+    
+    #for datalist in synthetic_data: 
+    #    synthetic_data_trees.append(ID3(datalist, SYNTHETIC_CLASS_LABEL, synthetic_data_attributes))
 
 # synthetic_data()
 
@@ -175,11 +179,19 @@ def ID3(dataset, class_label, attributes):
     
     # Checking if there are no more attributes left
     #   If so, return the most common class label value
+
+    if type(attributes) == 'Attribute':
+        return root
+
     if len(attributes) == 0:
         root.attribute = most_common_class_label_value(dataset, class_label)
         return root
     else:
-        splitting_attribute = best_attribute(dataset, class_label, attributes)
+        if len(attributes) == 1:
+            splitting_attribute = attributes[0]
+        else:
+            splitting_attribute = best_attribute(dataset, class_label, attributes)
+        
         root.attribute = splitting_attribute
 
         for attribute_value in splitting_attribute.values:
@@ -189,9 +201,16 @@ def ID3(dataset, class_label, attributes):
             if len(subset) == 0:
                 new_node = Node()
                 new_node.attribute = most_common_class_label_value(dataset, class_label)
+                new_branch.child = new_node
             else:
-                attributes = attributes[attributes != root.attribute]
-                ID3(subset, class_label, attributes)    
+                new_attributes = []
+
+                for attribute in attributes:
+                    if attribute != root.attribute:
+                        new_attributes.append(attribute)
+
+                #attributes = attributes[attributes != root.attribute]
+                new_branch.child = ID3(subset, class_label, new_attributes)    
     
     return root
 # ID3()
