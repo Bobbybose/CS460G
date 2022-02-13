@@ -3,12 +3,7 @@
 
 
 # Imports
-from curses import raw
-from hashlib import new
-import pdb
-from re import A
-from attr import attr
-#from matplotlib.pyplot import cla
+import matplotlib.pylot as plt
 import numpy as np
 import math
 import pandas as pd
@@ -17,78 +12,37 @@ pd.options.display.max_rows = 1000
 
 # Global variables
 MAX_DEPTH = 3
+NUM_BINS = 4
 SYNTHETIC_CLASS_LABEL = "class"
-BINS = 4
-
-# Description: Each data sample is stored in a Data class
-class Data:
-    # Holds attributes and values in a dictionary structure
-    #   {Attribute_Type: Attribute_Value}
-    attribute_values = {}
-    
-    # Class label
-    class_label = ""
-
-    # Holds the value for the class label
-    class_label_value = ""
-
-    def __init__(self, attribute_values = {}, class_label = "", class_label_value = ""):
-        self.attribute_values = attribute_values
-        self.class_label = class_label
-        self.class_label_value = class_label_value
-
-    def __str__(self):
-        output_string = ""
-        for attribute in self.attribute_values:
-            output_string += attribute + ": " + str(self.attribute_values[attribute]) + " "
-        output_string += self.class_label + ": " + str(self.class_label_value)
-        return output_string
-
-
-# Description: Each attribute is stored in a Attribute class
-class Attribute:
-    # List of possible values
-    values = []
-
-    # Initialize attribute and store name (attribute label)
-    def __init__(self, attribute_name = ""):
-        self.attribute_name = attribute_name
+POKEMON_CLASS_LABEL = "Legendary"
 
 
 # Description: Nodes (leaves) of the tree are stored in Node class
 class Node:
-    # Attribute splitting on
-    attribute = Attribute()
-
-    # Hold children nodes
-    child_nodes = []
-
-    # Array of Branch objects that connect this Node to child nodes
-    branches = []
-
-    def __init__(self, value = "Root"):
-        self.value = value
-        
-
-# Description: Branches connect parent and child nodes together
-class Branch:
-    # Child node
-    child = Node()
     
-    # When initialized, set the parent node, and the branch value of the attribute parent node splits on
-    def __init__(self, parent, attribute_value):
-        self.parent = parent
-        self.attribute_value = attribute_value
+    def __init__(self, value = "Root"):
+        self.attribute = ""
+        self.value = value
+        self.child_nodes = []
+    
+    def __str__(self):
+        return "Splitting Attribute: " + str(self.attribute) + "    Value: " + str(self.value)
 
+def main():   
 
-def main():
+    # Classifying synthetic data and visualizing classifiers
     synthetic_data()
+
+    print("\n-----------------------------------------------------------------------------------\n")
+
+    # Classifying pokemon data
+    pokemon_data()
 # main()
 
 
 # Description: Train and test the Decision Trees for the synthetic data
 # Arguments: None
-# Returns: 
+# Returns: None
 def synthetic_data():
 
     # Reading in synthetic data
@@ -97,110 +51,93 @@ def synthetic_data():
     synthetic_data_df_3 = pd.read_csv("datasets/synthetic-3.csv", delimiter = ",", names = ["x", "y", "class"])
     synthetic_data_df_4 = pd.read_csv("datasets/synthetic-4.csv", delimiter = ",", names = ["x", "y", "class"])
 
-    # Collect all the raw DataFrame data into one list
-    raw_synthetic_dataset_list = [synthetic_data_df_1, synthetic_data_df_2, synthetic_data_df_3, synthetic_data_df_4]
     
     # Copying data to preserve original for testing
-    synthetic_dataset_list = raw_synthetic_dataset_list.copy()
+    synthetic_dataset_list = [synthetic_data_df_1, synthetic_data_df_2, synthetic_data_df_3, synthetic_data_df_4]
     
+    # Discretizing the synthetic dataset
     for dataset in synthetic_dataset_list:
-        dataset["x"] = pd.qcut(dataset["x"], BINS)
-        dataset["y"] = pd.qcut(dataset["y"], BINS)
+        dataset["x"] = pd.qcut(dataset["x"], NUM_BINS)
+        dataset["y"] = pd.qcut(dataset["y"], NUM_BINS)
 
-    # Attributes in the synthetic data
-    #synthetic_data_attributes = [Attribute("x"), Attribute("y")]
-    
-
-    # Process the raw synthetic data and obtain easier-to-work-with datasets
-    #synthetic_data = data_processing(synthetic_data_list, synthetic_data_attributes, SYNTHETIC_CLASS_LABEL)
-
-    synthetic_data_trees = []
-
-    #for data in synthetic_data[0]:
-    #    print(data)
-
+    # Parameters for the synthetic data
+    synthetic_dataset_trees = []
     synthetic_class_label = "class"
     synthetic_attributes = ["x", "y"]
-    synthetic_data_trees.append(Decision_Tree(synthetic_dataset_list[0], synthetic_class_label, synthetic_attributes))
 
-    for tree in synthetic_data_trees:
-        print(tree)
+    # Training, printing, and on the synthetic data
+    for i in range(len(synthetic_dataset_list)):
+        synthetic_dataset_trees.append(Decision_Tree(synthetic_dataset_list[i], synthetic_class_label, synthetic_attributes))
 
-    #return 1
+        print("Printing Synthetic Tree " + str(i) + ":")
+        print(synthetic_dataset_trees[i])
+    
+    print("\n")
+    
+    # Testing on synthetic data and printing accuracies
+    for i in range(len(synthetic_dataset_trees)):
+        accuracy = synthetic_dataset_trees[i].test_on_tree(synthetic_dataset_list[i], SYNTHETIC_CLASS_LABEL)
 
-    #for datalist in synthetic_data: 
-    #    synthetic_data_trees.append(Decision_Tree(datalist, SYNTHETIC_CLASS_LABEL, synthetic_data_attributes))
+        print("Synthetic Test Accuracy: " + str(accuracy))
 
 # synthetic_data()
 
 
-# Description: Process raw data to an easier format to work with 
-# Arguments: Array of raw DataFrame data, attributes for this selection of data, class label for the dataset
-# Returns: Processed datasets
-def data_processing(raw_data_list, data_attributes, class_label):
+# Description: Train and test the Decision Tree for the pokemon data
+# Arguments: None
+# Returns: None
+def pokemon_data():
+
+    # Reading in pokemon data
+    pokemon_stats = pd.read_csv("datasets/pokemonStats.csv", delimiter = ",")
+    pokemon_legendary = pd.read_csv("datasets/pokemonLegendary.csv", delimiter = ",")
+
+    # Combining the two DataFrames
+    pokemon_dataset = pd.concat([pokemon_stats, pokemon_legendary], axis = 1)
+
+    # Obtaining the attributes
+    pokemon_attributes = pokemon_dataset.columns.tolist()
+    pokemon_attributes.remove(POKEMON_CLASS_LABEL)
+
+    # Attributes that need to be discretized
+    continuous_attributes = ["Total", "HP", "Attack", "Defense", "Sp. Atk", "Sp. Def", "Speed"]
+
+    # Discretizing the pokemon dataset
+    for attribute in continuous_attributes:
+        pokemon_dataset[attribute] = pd.qcut(pokemon_dataset[attribute], NUM_BINS)
+
+    # Training on the pokemon data
+    pokemon_tree = Decision_Tree(pokemon_dataset, POKEMON_CLASS_LABEL, pokemon_attributes)
+
+    # Printing the pokemon tree
+    print("Printing Pokemon Tree:")
+    print(pokemon_tree)
+    print("\n")
     
-    # To collect process datasets
-    datasets = []
+    # Testing on pokemon data and printing accuracies
+    accuracy = pokemon_tree.test_on_tree(pokemon_dataset, POKEMON_CLASS_LABEL)
+    print("Synthetic Test Accuracy: " + str(accuracy))
 
-    # Discretizing the data
-    for datalist in raw_data_list:
-        for attribute in data_attributes:
-            datalist[attribute.attribute_name] = pd.qcut(datalist[attribute.attribute_name], BINS)#, labels = False)      
-            attribute.values = datalist[attribute.attribute_name].unique()
-
-        # Converting the dataset to a dict for easier parsing
-        dataset_dict = datalist.to_dict(orient = 'index')
-
-        # Parse and collect dataset information
-        datasets.append(parse_data(dataset_dict, class_label))
-
-    return datasets
-# data_processing()
-
-
-# Description: Parses dataset dict data into an array of Data objects
-# Arguments: Dictionary of raw data, class label for the dataset
-# Returns: Array of Data objects
-def parse_data(dataset_dict, class_label):
-    
-    # Will be an array of Data objects
-    dataset = []
-
-    # Populating dataset with Data objects from the raw data
-    for index, data in dataset_dict.items():
-        class_label_value = data.pop(class_label)
-        dataset.append(Data(data, class_label, class_label_value))
-
-    return dataset
-# parse_data()
+# pokemon_data()
 
 
 class Decision_Tree:
 
-    # Root node of the entire tree
-    root_node = Node()
-
-
     # Description: Decision tree initialization. Creates tree and sets root node
     def __init__(self, dataset, class_label, attributes):
-        self.root_node = self.ID3(dataset, class_label, attributes)
+        self.root_node = self.ID3(dataset, class_label, attributes, 0)
         
 
     # Description: Main decision tree creation function.
     # Arguments: dataset (examples), class label for the dataset, array of attribute objects
     # Returns: Root of the current tree (subtree starting at root)
-    def ID3(self, dataset, class_label, attributes):
+    def ID3(self, dataset, class_label, attributes, depth):
 
         root = Node()
 
         # Checking if there is only one type of class label left
-        if len(dataset[class_label].unique()) == 1:
-            root.attribute = dataset.loc[0][class_label]
-            return root
-        
-        # Checking if there are no more attributes left
-        if len(attributes) == 0:
-            root.attribute = dataset[class_label].mode()
+        if len(dataset[class_label].unique()) == 1 or len(attributes) == 0 or depth == 3:
+            root.attribute = dataset[class_label].value_counts().idxmax()
             return root
               
         # Finding best attribute to split on
@@ -209,8 +146,14 @@ class Decision_Tree:
         # Setting root attribute
         root.attribute = splitting_attribute
 
+        # Getting unique values
+        if type(dataset[splitting_attribute].values) == 'pandas.core.arrays.categorical.Categorical':
+            unique_values = dataset[splitting_attribute].values.unique()
+        else:
+            unique_values = np.unique(dataset[splitting_attribute].values)
+
         # Cycling through attribute values are creating branches
-        for attribute_value in dataset[splitting_attribute].values.unique():
+        for attribute_value in unique_values:
             
             # Creating subset of dataset with current attribute_value
             subset = dataset.loc[dataset[splitting_attribute] == attribute_value]
@@ -226,85 +169,47 @@ class Decision_Tree:
                     if attribute != root.attribute:
                         new_attributes.append(attribute)
                 
-                new_node = self.ID3(subset, class_label, new_attributes)
+                new_node = self.ID3(subset, class_label, new_attributes, depth+1)
                 new_node.value = attribute_value
                 root.child_nodes.append(new_node)
     
-        print("main root: " + root.attribute.attribute_name)
         return root
     # ID3()
 
 
-    # Description: Checks if there is only one class label value left in the dataset
-    # Arguments: dataset (examples)
-    # Returns: Number of unique class labels in the dataset
-    def num_unique_labels_in_dataset(self, dataset):
+    # Description: Testing a dataset on the tree
+    # Arguments: dataset being tested
+    # Returns: Accuracy of the test
+    def test_on_tree(self, test_data, class_label):
+        num_correct_predicts = 0
+
+        for index, data in test_data.iterrows():
+            if data[class_label] == self.predict_label(data, self.root_node):
+                num_correct_predicts += 1
+
+        return num_correct_predicts/len(test_data)
+
+    # test_on_tree()
+
+
+    # Description: Predict the class label using the decision tree
+    # Arguments: Data being tested on
+    # Returns: Predicted label
+    def predict_label(self, data, root):
         
-        # Store number of unique labels (Theoretically only 1 or 2)
-        num_unique_labels = 0
-        # Stores the different label values left 
-        labels = []
+        # If this node is a leaf, return the label
+        if not root.child_nodes:
+            return root.attribute
 
-        # Cycling through all the data and storing unique labels
-        for data in dataset:
-            if not data.class_label_value in labels:
-                num_unique_labels += 1
-                labels.append(data.class_label_value)
+        # Getting this data's attribute value for this node's split
+        data_attribute = data[root.attribute]
         
-        return num_unique_labels
-    # num_unique_labels_in_dataset()
+        # Going deeper into the tree
+        for child in root.child_nodes:
+            if child.value == data[root.attribute]:
+                return self.predict_label(data, child)                
 
-
-    # Description: Finds and returns the most common class label value in the dataset
-    # Arguments: dataset (examples), class label for the dataset
-    # Returns: Most common class label value in the dataset
-    def most_common_class_label_value(self, dataset, class_label):
-
-        # Keep track of number of occurrences of each class_label value    
-        label_value_count = {"positive": 0, "negative": 0}
-        # Keeps track of highest occurrence value count
-        maxCount = 0
-        # Keeps track of highest occurrence value
-        most_common_value = ""
-
-
-        # Tally up occurrences for each class_label value
-        for data in dataset:
-            # Adding an occurrence to the current data's class_label_value
-            label_value_count["positive"], label_value_count["negative"] = self.class_label_occurrences(dataset, class_label)
-
-            # Updating the other tracking variables if needed
-            if label_value_count["positive"] > maxCount:
-                maxCount = label_value_count["positive"]
-                most_common_value = "positive"
-            else:
-                maxCount = label_value_count["negative"]
-                most_common_value = "negative"
-        
-        # Returning most common class label
-        return most_common_value
-    # most_common_label_value()
-
-
-    # Description: Calculates how many positive and negative class labels are in the dataset
-    # Arguments: dataset (examples), class label for the dataset
-    # Returns: Number of positive and negative class label occurrences in the dataset
-    def class_label_occurrences(self, dataset, class_label):
-    
-        # Stores numbers of positive/negative class label occurrences
-        num_positive = 0
-        num_negative = 0
-    
-        # Tally up occurrences for each class_label value
-        for data in dataset:
-            # Adding an occurrence to the current data's class_label_value
-            if data.class_label_value == 1:
-                num_positive += 1
-            else:
-                num_negative += 1
-
-        return num_positive, num_negative
-    # class_label_occurrences()
+    # predict_label()
 
 
     # Description: Selects the best attribute to split on at this position in the tree
@@ -337,8 +242,12 @@ class Decision_Tree:
         attribute_value_count = {}
 
         # Filling in dict
-        for attribute_value in dataset[chosen_attribute].values.unique():
-            attribute_value_count[attribute_value] = 0
+        if type(dataset[chosen_attribute].values) == 'pandas.core.arrays.categorical.Categorical':
+            for attribute_value in dataset[chosen_attribute].values.unique():
+                attribute_value_count[attribute_value] = 0
+        else:
+            for attribute_value in np.unique(dataset[chosen_attribute].values):
+                attribute_value_count[attribute_value] = 0
 
         # Tallying occurrences
         for index, data in dataset.iterrows():
@@ -403,22 +312,20 @@ class Decision_Tree:
     # entropy()
 
 
+    # Overload the print function
     def __str__(self):
         self.print_tree(self.root_node, 0)
         return ""
 
-
+    # Print tree in nice format
     def print_tree(self, root, level):
         
         for i in range(level):
-            print("--", end='')
+            print("   ", end='')
 
-        if len(root.child_nodes) == 0:
-            print(root.attribute)
-
+        print(str(root))
+        
         for child in root.child_nodes:
-            print(root.attribute.attribute_name + ": " + str(child.value))
             self.print_tree(child, level+1)
-            
 
 main()
