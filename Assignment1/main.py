@@ -3,12 +3,11 @@
 
 
 # Imports
-import matplotlib.pylot as plt
 import numpy as np
 import math
 import pandas as pd
 pd.options.display.max_rows = 1000
-
+import matplotlib.pyplot as plt
 
 # Global variables
 MAX_DEPTH = 3
@@ -27,7 +26,12 @@ class Node:
     
     def __str__(self):
         return "Splitting Attribute: " + str(self.attribute) + "    Value: " + str(self.value)
+# Node
 
+
+# Description: Main function of the program. Just calls functions for Parts 1-3 of Assignment
+# Arguments: None
+# Returns: None
 def main():   
 
     # Classifying synthetic data and visualizing classifiers
@@ -45,15 +49,19 @@ def main():
 # Returns: None
 def synthetic_data():
 
+    # PART 1 of Assignment ---------------------------------------------------------------------------------------------------
+
     # Reading in synthetic data
     synthetic_data_df_1 = pd.read_csv("datasets/synthetic-1.csv", delimiter = ",", names = ["x", "y", "class"])
     synthetic_data_df_2 = pd.read_csv("datasets/synthetic-2.csv", delimiter = ",", names = ["x", "y", "class"])
     synthetic_data_df_3 = pd.read_csv("datasets/synthetic-3.csv", delimiter = ",", names = ["x", "y", "class"])
     synthetic_data_df_4 = pd.read_csv("datasets/synthetic-4.csv", delimiter = ",", names = ["x", "y", "class"])
 
-    
+    # Storing all synthetic data in a list
+    raw_synthetic_dataset_list = [synthetic_data_df_1, synthetic_data_df_2, synthetic_data_df_3, synthetic_data_df_4]
+
     # Copying data to preserve original for testing
-    synthetic_dataset_list = [synthetic_data_df_1, synthetic_data_df_2, synthetic_data_df_3, synthetic_data_df_4]
+    synthetic_dataset_list = [synthetic_data_df_1.copy(), synthetic_data_df_2.copy(), synthetic_data_df_3.copy(), synthetic_data_df_4.copy()]
     
     # Discretizing the synthetic dataset
     for dataset in synthetic_dataset_list:
@@ -62,26 +70,80 @@ def synthetic_data():
 
     # Parameters for the synthetic data
     synthetic_dataset_trees = []
-    synthetic_class_label = "class"
     synthetic_attributes = ["x", "y"]
 
     # Training, printing, and on the synthetic data
     for i in range(len(synthetic_dataset_list)):
-        synthetic_dataset_trees.append(Decision_Tree(synthetic_dataset_list[i], synthetic_class_label, synthetic_attributes))
+        synthetic_dataset_trees.append(Decision_Tree(synthetic_dataset_list[i], SYNTHETIC_CLASS_LABEL, synthetic_attributes))
 
-        print("Printing Synthetic Tree " + str(i) + ":")
+        print("Printing Synthetic Tree " + str(i+1) + ":")
         print(synthetic_dataset_trees[i])
-    
-    print("\n")
-    
+        
     # Testing on synthetic data and printing accuracies
     for i in range(len(synthetic_dataset_trees)):
         accuracy = synthetic_dataset_trees[i].test_on_tree(synthetic_dataset_list[i], SYNTHETIC_CLASS_LABEL)
 
         print("Synthetic Test Accuracy: " + str(accuracy))
 
-    return synthetic_dataset_list, synthetic_dataset_trees, 
+    
+    # PART 2 of Assignment ---------------------------------------------------------------------------------------------------
+    #   Used https://scikit-learn.org/stable/auto_examples/tree/plot_iris_dtc.html as reference
+    #   Used https://matplotlib.org/stable/api/pyplot_summary.html for reference
 
+    # Plot parameters
+    plot_step = 0.1
+    subplot_titles = ["Synthetic-1", "Synthetic-2", "Synthetic-3", "Synthetic-4"]
+
+    # Current dataset index being looked at (index = dataset # - 1)
+    index = 0
+
+    # Need four subplots (one per dataset)
+    figure, axs = plt.subplots(2, 2, figsize=(30,15))
+
+    for ax in axs.flat:
+
+        # Current dataset being looked at
+        dataset = raw_synthetic_dataset_list[index]
+
+        # Getting plot mins and maxes and modifying plot parameters
+        x_min, x_max = dataset["x"].min() - 1, dataset["x"].max() + 1
+        y_min, y_max = dataset["y"].min() - 1, dataset["y"].max() + 1
+
+        # Creating meshgrid
+        xx, yy = np.meshgrid(np.arange(x_min, x_max, plot_step), 
+                             np.arange(y_min, y_max, plot_step))
+        
+        # test_on_tree() is expecting a DataFrame object
+        data = np.c_[xx.ravel(), yy.ravel()]
+        meshgrid_df = pd.DataFrame(data, columns = synthetic_attributes)
+
+        # Obtaining predictions
+        z = synthetic_dataset_trees[index].test_raw_data(meshgrid_df, SYNTHETIC_CLASS_LABEL)
+        z = np.reshape(z, xx.shape)
+
+        # Plotting the approximation background
+        cs = ax.contourf(xx, yy, z, levels = 1, colors = ['salmon', 'cornflowerblue'])
+        #ax.axis("tight")
+
+        # Labeling the axis
+        plt.xlabel("x", fontsize = 20)
+        plt.ylabel("y", fontsize = 20)
+
+        # Plotting data
+        ax.scatter(dataset.loc[dataset["class"] == 0]["x"], dataset.loc[dataset["class"] == 0]["y"], c = 'r', label = "0", cmap = plt.cm.Paired, edgecolor = "black", s = 25)
+        ax.scatter(dataset.loc[dataset["class"] == 1]["x"], dataset.loc[dataset["class"] == 1]["y"], c = 'b', label = "1", cmap = plt.cm.Paired, edgecolor = "black", s = 25)
+        
+        # Formatting the subplot
+        ax.axis("tight")
+        ax.set_title(subplot_titles[index], fontsize = 20)
+        ax.legend(fontsize = 15)
+
+        # Need to move on to next dataset next loop iteration
+        index += 1
+    
+    # Formatting the plot
+    plt.suptitle("Decision Surface of Decision Trees", fontsize = 35)
+    figure.savefig("Decision_Surface.png")
 # synthetic_data()
 
 
@@ -114,21 +176,45 @@ def pokemon_data():
     # Printing the pokemon tree
     print("Printing Pokemon Tree:")
     print(pokemon_tree)
-    print("\n")
     
     # Testing on pokemon data and printing accuracies
     accuracy = pokemon_tree.test_on_tree(pokemon_dataset, POKEMON_CLASS_LABEL)
     print("Synthetic Test Accuracy: " + str(accuracy))
-
 # pokemon_data()
 
 
+# Description: Decision_Trees are objects. Neater code this way
 class Decision_Tree:
 
     # Description: Decision tree initialization. Creates tree and sets root node
     def __init__(self, dataset, class_label, attributes):
         self.root_node = self.ID3(dataset, class_label, attributes, 0)
         
+
+    # Overload printing
+    def __str__(self):
+        self.print_tree(self.root_node, 0)
+        return ""
+    # str()
+
+
+    # Description: Print tree in nice format
+    # Arguments: root of current tree being printed, depth currently at
+    # Returns: Accuracy of the test
+    def print_tree(self, root, depth):
+        
+        # Formnatting line based on current depth
+        for i in range(depth):
+            print("   ", end='')
+
+        # Printing the current node
+        print(str(root))
+        
+        # Recursing through each child
+        for child in root.child_nodes:
+            self.print_tree(child, depth+1)
+    # print_tree()
+
 
     # Description: Main decision tree creation function.
     # Arguments: dataset (examples), class label for the dataset, array of attribute objects
@@ -160,12 +246,16 @@ class Decision_Tree:
             # Creating subset of dataset with current attribute_value
             subset = dataset.loc[dataset[splitting_attribute] == attribute_value]
 
+            # If subset is empty, return most common class label
             if len(subset) == 0:
                 new_node = Node(attribute_value)
-                new_node.attribute = self.most_common_class_label_value(dataset, class_label)
+                new_node.attribute = dataset[class_label].value_counts().idxmax()
                 root.child_nodes.append(new_node)
-
+            
+            # Otherwise begin branch/child creation
             else:
+                
+                # Creating new attribute list without splitting attribute
                 new_attributes = []
                 for attribute in attributes:
                     if attribute != root.attribute:
@@ -190,7 +280,6 @@ class Decision_Tree:
                 num_correct_predicts += 1
 
         return num_correct_predicts/len(test_data)
-
     # test_on_tree()
 
 
@@ -202,16 +291,49 @@ class Decision_Tree:
         # If this node is a leaf, return the label
         if not root.child_nodes:
             return root.attribute
-
-        # Getting this data's attribute value for this node's split
-        data_attribute = data[root.attribute]
         
         # Going deeper into the tree
         for child in root.child_nodes:
             if child.value == data[root.attribute]:
                 return self.predict_label(data, child)                
-
     # predict_label()
+
+
+    # Description: Testing raw, un-binned synthesized data
+    # Arguments: Data being tested on and class_label
+    # Returns: Array of predictions
+    def test_raw_data(self, dataset, class_label):
+      
+        # Store return value
+        predictions = []
+
+        # Predicting each piece of data and storing result
+        for index, data in dataset.iterrows():
+            prediction = self.predict_label_raw(data, self.root_node)
+
+            if str(prediction) == "None":
+                # For better looking plot
+                predictions.append(0)
+            else:
+                predictions.append(self.predict_label_raw(data, self.root_node))
+
+        return predictions
+    # test_raw_data()
+
+    # Description: Predict the class label using the decision tree
+    # Arguments: Data being tested on
+    # Returns: Predicted label
+    def predict_label_raw(self, data, root):
+        
+        # If this node is a leaf, return the label
+        if not root.child_nodes:
+            return root.attribute
+        
+        # Going deeper into the tree
+        for child in root.child_nodes:
+            if data[root.attribute] in child.value:
+                return self.predict_label_raw(data, child)
+    # predict_label_raw()
 
 
     # Description: Selects the best attribute to split on at this position in the tree
@@ -313,21 +435,5 @@ class Decision_Tree:
         return positive + negative
     # entropy()
 
-
-    # Overload the print function
-    def __str__(self):
-        self.print_tree(self.root_node, 0)
-        return ""
-
-    # Print tree in nice format
-    def print_tree(self, root, level):
-        
-        for i in range(level):
-            print("   ", end='')
-
-        print(str(root))
-        
-        for child in root.child_nodes:
-            self.print_tree(child, level+1)
 
 main()
