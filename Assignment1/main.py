@@ -80,6 +80,8 @@ def synthetic_data():
 
         print("Synthetic Test Accuracy: " + str(accuracy))
 
+    return synthetic_dataset_list, synthetic_dataset_trees, 
+
 # synthetic_data()
 
 
