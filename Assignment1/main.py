@@ -83,7 +83,7 @@ def synthetic_data():
     for i in range(len(synthetic_dataset_trees)):
         accuracy = synthetic_dataset_trees[i].test_on_tree(synthetic_dataset_list[i], SYNTHETIC_CLASS_LABEL)
 
-        print("Synthetic Test Accuracy: " + str(accuracy))
+        print("Synthetic" + str(i+1) + "Test Accuracy: " + str(accuracy))
 
     
     # PART 2 of Assignment ---------------------------------------------------------------------------------------------------
@@ -179,7 +179,7 @@ def pokemon_data():
     
     # Testing on pokemon data and printing accuracies
     accuracy = pokemon_tree.test_on_tree(pokemon_dataset, POKEMON_CLASS_LABEL)
-    print("Synthetic Test Accuracy: " + str(accuracy))
+    print("Pokemon Test Accuracy: " + str(accuracy))
 # pokemon_data()
 
 
