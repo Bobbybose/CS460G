@@ -12,15 +12,12 @@ import pandas as pd
 
 def main():
 
-    wine_labels = ["fixed acidity", "volatile acidity", "citric acid", "residual sugar", 
+    wine_features = ["fixed acidity", "volatile acidity", "citric acid", "residual sugar", 
                    "chlorides", "free sulfur dioxide", "total sulfur dioxide", "density", 
-                   "pH", "sulphates", "alcohol", "quality"
-                  ]
-    
-    wine_features = wine_labels.copy().remove("quality")
+                   "pH", "sulphates", "alcohol"
+                    ]
 
-    wine_data_df = pd.read_csv("datasets/winequality-red.csv", delimiter = ",", names = wine_labels)
-
+    wine_data_df = pd.read_csv("datasets/winequality-red.csv", delimiter = ",")#, names = wine_labels)
 
     # Preprocessing input features
     wine_data_processed = wine_data_df.copy()
@@ -29,9 +26,14 @@ def main():
         min = wine_data_processed[feature].min()
 
         for index, row in wine_data_processed.iterrows():
-            row[feature] = (row[feature] - min) / (max - min)
+            row[feature] = (int(row[feature]) - min) / (max - min)
 
     weights, MSE = multiple_linear_regression(wine_data_processed, wine_features, "quality")
+
+    print(weights)
+
+    print(MSE)
+
 
     return 1
 
@@ -40,21 +42,24 @@ def main():
 
 def multiple_linear_regression(dataset, features, class_label):
     weights = []
-    alpha = 0.5
-    epochs = 0
+    alpha = 0.001
+    epochs = 100
     MSE = 0
 
     # Randomly initialize the weights
-    weights = np.random.uniform(0, 20, len(features) + 1).tolist()
+    weights = np.random.uniform(0, 1, len(features) + 1).tolist()
 
-    if epochs != 1000:
-        epochs += 1
+    for epoch in range(epochs):
+
+        if epoch % 10 == 0:
+            print(weights)
+            print(get_MSE(dataset, weights, class_label))
 
         for index in range(len(weights)):
             gradient_total = 0
-
-            for data in dataset:
-
+            
+            
+            for i, data in dataset.iterrows():
                 if index == 0:
                     gradient_total += (get_equation_prediction(weights, data) - data[class_label]) * 1
                 else:
@@ -62,25 +67,32 @@ def multiple_linear_regression(dataset, features, class_label):
 
             weights[index] -= alpha * 1/(len(dataset)) * gradient_total
     
-    
-    for data in dataset:
-        MSE += ((get_equation_prediction(weights, data) - data[class_label]))**2
-    MSE = 1/MSE
+    MSE = get_MSE(dataset, weights, class_label)
 
     return weights, MSE
 
 # multiple_linear_regression()
 
 
-def get_equation_prediction(weights, data):
-    result = []
+def get_MSE(dataset, weights, class_label):
+    MSE = 0
     
+    for i, data in dataset.iterrows():
+        MSE += ((get_equation_prediction(weights, data) - data[class_label]))**2
+    MSE *= 1/len(dataset)
+
+    return MSE
+
+def get_equation_prediction(weights, data):
+    result = 0
     for index in range(len(weights)):
         
         if index == 0:
-            result.append(weights[index]*1)
+            result += weights[index]*1
         else:
-            result.append(weights[index]*data[index])
+            result += weights[index]*data[index-1]
     
     return result
 # get_equation_prediction()
+
+main()
