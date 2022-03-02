@@ -5,10 +5,7 @@
 # Imports
 from functools import partial
 import numpy as np
-#import math
 import pandas as pd
-
-from Assignment1.main import synthetic_data
 #pd.options.display.max_rows = 1000
 #import matplotlib.pyplot as plt
 
@@ -25,24 +22,35 @@ def main():
     wine_data_df = pd.read_csv("datasets/winequality-red.csv", delimiter = ",")
 
     # Running the linear regression over the wine data
-    wine_weights, wine_MSE = multiple_linear_regression(wine_data_df, wine_features, "quality")
+    #wine_weights, wine_MSE = multiple_linear_regression(wine_data_df, wine_features, "quality")
 
     # Printing the final weights and MSE
-    print("Final Wine Weights: " + str(wine_weights))
-    print("Final Wine MSE: " + str(wine_MSE))
+    #print("Final Wine Weights: " + str(wine_weights))
+    #print("Final Wine MSE: " + str(wine_MSE))
 
 # PART 2 of Assignment----------------------------------------------------------------------------------------------
 
     synthetic_data_df_1 = pd.read_csv("datasets/synthetic-1.csv", delimiter = ",", names = ["x", "y"])
     synthetic_data_df_2 = pd.read_csv("datasets/synthetic-2.csv", delimiter = ",", names = ["x", "y"])
 
-    synthetic_dataset_list = [synthetic_data_df_1, synthetic_data_df_2]
+    synthetic_dataset_list = [synthetic_data_df_1.copy(), synthetic_data_df_2.copy()]
+
+#    for dataset in synthetic_dataset_list:
+#        x_min = np.min(dataset["x"].to_numpy())
+#        x_max = np.max(dataset["x"].to_numpy())
+
+        #for index, data in dataset.iterrows():
+        #    data["x"] = (data["x"] - x_min) / (x_max - x_min)
 
     polynomial_values = [2, 3, 5]
 
-    for dataset in synthetic_dataset_list:
+    for index in range(2):
         for poly_value in polynomial_values:
-            weights, MSE = polynomial_regression(dataset, poly_value)
+            print("Synthetic " + str(index+1) + " Polynomial Regression for n=" + str(poly_value))
+            weights, MSE = polynomial_regression(synthetic_dataset_list[index], poly_value)
+            print("Synthetic " + str(index+1) + " Weights: " + str(weights))
+            print("Synthetic " + str(index+1) + " MSE: " + str(MSE))
+            print()
 
 
 
@@ -87,7 +95,6 @@ def multiple_linear_regression(dataset, features, class_label):
 # Arguments: Dataset of examples, weights for the equation, y values for the equation, index for the weight/feature being updated
 # Returns: Loss  
 def total_loss(dataset, weights, y_values, weight_index):
-    
     loss = 0
 
     # Summing the loss from each example
@@ -129,9 +136,65 @@ def get_MSE(dataset, weights, y_values):
 def polynomial_regression(dataset, n):
     # Randomly initializing the weights
     weights = np.random.uniform(0, 1, n+1)
-    
+
+    epochs = 1000    
+    alpha = 0.001
+    MSE = 0
+
     # x and y values of the dataset
     x_values = dataset["x"].to_numpy()
+
     y_values = dataset["y"].to_numpy()
 
+    for epoch in range(epochs):
+            
+        if epoch % 100 == 0:
+            print("    Epoch: " + str(epoch))
+            print("         Weights: " + str(weights))
+            print("         MSE: " + str(get_polynomial_MSE(x_values, weights, y_values, n)))
+
+        for weight_index in range(weights.size):
+            weights[weight_index] -= alpha * polynomial_loss(x_values, weights, y_values, weight_index, n)
+
+    MSE = get_polynomial_MSE(x_values, weights, y_values, n)
+
+    return weights, MSE
+
+def polynomial_loss(x_values, weights, y_values, weight_index, n):
+    loss = 0
+
+    # Cycling through all examples
+    for index in range(len(x_values)):
+        hypothesis = 0
+        
+        # Calculating h0(i)
+        for order in range(n):
+            # wi * (xi)^order
+            hypothesis += weights[order] * (x_values[index] ** order)
+
+            # (h0(i) - y(i)) * xji
+            loss += (hypothesis - y_values[index]) * (x_values[index] ** weight_index)
+
+    return (1/len(x_values)) * loss
+# polynomial_lose()
+
+
+def get_polynomial_MSE(x_values, weights, y_values, n):
+    loss = 0
+
+    for index in range(len(x_values)):
+        hypothesis = 0
+        
+        for order in range(n):
+            # Calculating h0(i)
+            hypothesis += weights[order] * (x_values[index] ** order)
+
+            # (h0(i) - y(i)) ^ 2
+            loss += (hypothesis - y_values[index]) ** 2
+
+    return (1/len(x_values)) * loss
+
+
+
 main()
+
