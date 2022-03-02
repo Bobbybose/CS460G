@@ -21,11 +21,11 @@ def main():
     wine_data_df = pd.read_csv("datasets/winequality-red.csv", delimiter = ",")
 
     # Running the linear regression over the wine data
-    wine_weights, wine_MSE = multiple_linear_regression(wine_data_df, wine_features, "quality")
+    #wine_weights, wine_MSE = multiple_linear_regression(wine_data_df, wine_features, "quality")
 
     # Printing the final weights and MSE
-    print("Final Wine Weights: " + str(wine_weights))
-    print("Final Wine MSE: " + str(wine_MSE))
+    #print("Final Wine Weights: " + str(wine_weights))
+    #print("Final Wine MSE: " + str(wine_MSE))
 
 # PART 2 of Assignment----------------------------------------------------------------------------------------------
 
@@ -43,13 +43,13 @@ def main():
 
     polynomial_values = [2, 3, 5]
 
-    #for index in range(2):
-    #    for poly_value in polynomial_values:
-    #        print("Synthetic " + str(index+1) + " Polynomial Regression for n=" + str(poly_value))
-    #        weights, MSE = polynomial_regression(synthetic_dataset_list[index], poly_value)
-    #        print("Synthetic " + str(index+1) + " Weights: " + str(weights))
-    #        print("Synthetic " + str(index+1) + " MSE: " + str(MSE))
-    #        print()
+    for index in range(2):
+        for poly_value in polynomial_values:
+            print("Synthetic " + str(index+1) + " Polynomial Regression for n=" + str(poly_value))
+            weights, MSE = polynomial_regression(synthetic_dataset_list[index], poly_value)
+            print("Synthetic " + str(index+1) + " Weights: " + str(weights))
+            print("Synthetic " + str(index+1) + " MSE: " + str(MSE))
+            print()
 
 
 
@@ -136,19 +136,17 @@ def polynomial_regression(dataset, n):
     # Randomly initializing the weights
     weights = np.random.uniform(0, 1, n+1)
 
-    epochs = 1000    
+    epochs = 5000    
     alpha = 0.001
     MSE = 0
 
     # x and y values of the dataset
     x_values = dataset["x"].to_numpy()
-    x_values = np.insert(x_values, 0, 1)
-
     y_values = dataset["y"].to_numpy()
 
     for epoch in range(epochs):
             
-        if epoch % 100 == 0:
+        if epoch % 500 == 0:
             print("    Epoch: " + str(epoch))
             print("         Weights: " + str(weights))
             print("         MSE: " + str(get_polynomial_MSE(x_values, weights, y_values, n)))
@@ -167,14 +165,16 @@ def polynomial_loss(x_values, weights, y_values, weight_index, n):
     # Cycling through all examples
     for index in range(len(y_values)):
         hypothesis = 0
-        
+        xi = x_values[index]
+        yi = y_values[index]
+
         # Calculating h0(i)
         for order in range(0,n+1):
             # wi * (xi)^order
-            hypothesis += weights[order] * (x_values[index+1] ** order)
+            hypothesis += weights[order] * (xi ** order)
 
-            # (h0(i) - y(i)) * xji
-            loss += (hypothesis - y_values[index]) * (x_values[index+1] ** weight_index)
+        # (h0(i) - y(i)) * xji
+        loss += (hypothesis - yi) * (xi ** weight_index)
 
     return (1/len(y_values)) * loss
 # polynomial_lose()
@@ -185,13 +185,16 @@ def get_polynomial_MSE(x_values, weights, y_values, n):
 
     for index in range(len(y_values)):
         hypothesis = 0
-        
-        for order in range(n):
-            # Calculating h0(i)
-            hypothesis += weights[order] * (x_values[index+1] ** order)
+        xi = x_values[index]
+        yi = y_values[index]
 
-            # (h0(i) - y(i)) ^ 2
-            loss += (hypothesis - y_values[index]) ** 2
+        # Calculating h0(i)
+        for order in range(n):
+            # wi * (xi)^order
+            hypothesis += weights[order] * (xi ** order)
+
+        # (h0(i) - y(i)) ^ 2
+        loss += (hypothesis - yi) ** 2
 
     return (1/len(y_values)) * loss
 
