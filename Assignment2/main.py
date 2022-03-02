@@ -3,7 +3,6 @@
 
 
 # Imports
-from functools import partial
 import numpy as np
 import pandas as pd
 #pd.options.display.max_rows = 1000
@@ -22,11 +21,11 @@ def main():
     wine_data_df = pd.read_csv("datasets/winequality-red.csv", delimiter = ",")
 
     # Running the linear regression over the wine data
-    #wine_weights, wine_MSE = multiple_linear_regression(wine_data_df, wine_features, "quality")
+    wine_weights, wine_MSE = multiple_linear_regression(wine_data_df, wine_features, "quality")
 
     # Printing the final weights and MSE
-    #print("Final Wine Weights: " + str(wine_weights))
-    #print("Final Wine MSE: " + str(wine_MSE))
+    print("Final Wine Weights: " + str(wine_weights))
+    print("Final Wine MSE: " + str(wine_MSE))
 
 # PART 2 of Assignment----------------------------------------------------------------------------------------------
 
@@ -44,13 +43,13 @@ def main():
 
     polynomial_values = [2, 3, 5]
 
-    for index in range(2):
-        for poly_value in polynomial_values:
-            print("Synthetic " + str(index+1) + " Polynomial Regression for n=" + str(poly_value))
-            weights, MSE = polynomial_regression(synthetic_dataset_list[index], poly_value)
-            print("Synthetic " + str(index+1) + " Weights: " + str(weights))
-            print("Synthetic " + str(index+1) + " MSE: " + str(MSE))
-            print()
+    #for index in range(2):
+    #    for poly_value in polynomial_values:
+    #        print("Synthetic " + str(index+1) + " Polynomial Regression for n=" + str(poly_value))
+    #        weights, MSE = polynomial_regression(synthetic_dataset_list[index], poly_value)
+    #        print("Synthetic " + str(index+1) + " Weights: " + str(weights))
+    #        print("Synthetic " + str(index+1) + " MSE: " + str(MSE))
+    #        print()
 
 
 
@@ -143,6 +142,7 @@ def polynomial_regression(dataset, n):
 
     # x and y values of the dataset
     x_values = dataset["x"].to_numpy()
+    x_values = np.insert(x_values, 0, 1)
 
     y_values = dataset["y"].to_numpy()
 
@@ -160,39 +160,40 @@ def polynomial_regression(dataset, n):
 
     return weights, MSE
 
+
 def polynomial_loss(x_values, weights, y_values, weight_index, n):
     loss = 0
 
     # Cycling through all examples
-    for index in range(len(x_values)):
+    for index in range(len(y_values)):
         hypothesis = 0
         
         # Calculating h0(i)
-        for order in range(n):
+        for order in range(0,n+1):
             # wi * (xi)^order
-            hypothesis += weights[order] * (x_values[index] ** order)
+            hypothesis += weights[order] * (x_values[index+1] ** order)
 
             # (h0(i) - y(i)) * xji
-            loss += (hypothesis - y_values[index]) * (x_values[index] ** weight_index)
+            loss += (hypothesis - y_values[index]) * (x_values[index+1] ** weight_index)
 
-    return (1/len(x_values)) * loss
+    return (1/len(y_values)) * loss
 # polynomial_lose()
 
 
 def get_polynomial_MSE(x_values, weights, y_values, n):
     loss = 0
 
-    for index in range(len(x_values)):
+    for index in range(len(y_values)):
         hypothesis = 0
         
         for order in range(n):
             # Calculating h0(i)
-            hypothesis += weights[order] * (x_values[index] ** order)
+            hypothesis += weights[order] * (x_values[index+1] ** order)
 
             # (h0(i) - y(i)) ^ 2
             loss += (hypothesis - y_values[index]) ** 2
 
-    return (1/len(x_values)) * loss
+    return (1/len(y_values)) * loss
 
 
 
