@@ -34,19 +34,23 @@ def main():
 
     synthetic_dataset_list = [synthetic_data_df_1.copy(), synthetic_data_df_2.copy()]
 
-#    for dataset in synthetic_dataset_list:
-#        x_min = np.min(dataset["x"].to_numpy())
-#        x_max = np.max(dataset["x"].to_numpy())
+    for dataset in synthetic_dataset_list:
+        x_min = np.min(dataset["x"].to_numpy())
+        x_max = np.max(dataset["x"].to_numpy())
 
-        #for index, data in dataset.iterrows():
-        #    data["x"] = (data["x"] - x_min) / (x_max - x_min)
+        for index, data in dataset.iterrows():
+            data["x"] = (data["x"] - x_min) / (x_max - x_min)
 
     polynomial_values = [2, 3, 5]
+    alphas = [0.0005, 0.001]
+    weight_mins = [-2, 0]
+    weight_maxes = [2, 0.5]
+    epochs = [4500, 1]
 
     for index in range(2):
         for poly_value in polynomial_values:
             print("Synthetic " + str(index+1) + " Polynomial Regression for n=" + str(poly_value))
-            weights, MSE = polynomial_regression(synthetic_dataset_list[index], poly_value)
+            weights, MSE = polynomial_regression(synthetic_dataset_list[index], poly_value, alphas[index], weight_mins[index], weight_maxes[index], epochs[index])
             print("Synthetic " + str(index+1) + " Weights: " + str(weights))
             print("Synthetic " + str(index+1) + " MSE: " + str(MSE))
             print()
@@ -67,7 +71,7 @@ def multiple_linear_regression(dataset, features, class_label):
 
     # Parameters
     y_values = dataset[class_label].to_numpy()
-    epochs = 750
+    epochs = 80
     alpha = 0.0001
     MSE = 0
 
@@ -75,7 +79,7 @@ def multiple_linear_regression(dataset, features, class_label):
     # Adjusting number of times according to epochs values
     for epoch in range(epochs):
 
-        if epoch % 50 == 0:
+        if epoch % 100 == 0:
             print("Epoch: " + str(epoch))
             print("     Weights: " + str(weights))
             print("     MSE: " + str(get_MSE(dataset, weights, y_values)))
@@ -132,19 +136,17 @@ def get_MSE(dataset, weights, y_values):
 # get_MSE
 
 
-def polynomial_regression(dataset, n):
+def polynomial_regression(dataset, n, alpha, weight_min, weight_max, num_epochs):
     # Randomly initializing the weights
-    weights = np.random.uniform(0, 1, n+1)
+    weights = np.random.uniform(weight_min, weight_max, n+1)
 
-    epochs = 5000    
-    alpha = 0.001
     MSE = 0
 
     # x and y values of the dataset
     x_values = dataset["x"].to_numpy()
     y_values = dataset["y"].to_numpy()
 
-    for epoch in range(epochs):
+    for epoch in range(num_epochs):
             
         if epoch % 500 == 0:
             print("    Epoch: " + str(epoch))
