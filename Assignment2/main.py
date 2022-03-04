@@ -81,7 +81,8 @@ def main():
             print()
 
 # PART 3 of Assignment----------------------------------------------------------------------------------------------
-    
+#    Used https://aadhil-imam.medium.com/plotting-polynomial-function-in-python-361230a1e400 as reference for plotting polynomials    
+ 
     subplot_titles = ["Synthetic Dataset 1", "Synthetic Dataset 2"]
     figure, axs, = plt.subplots(2, 1, figsize=(30, 45))
 
