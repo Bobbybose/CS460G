@@ -2,6 +2,8 @@
 # Assignment 2: Linear and Polynomial Regression
 
 
+from datetime import datetime
+
 # Imports
 import numpy as np
 import pandas as pd
@@ -20,8 +22,16 @@ def main():
     # Reading in wine data
     wine_data_df = pd.read_csv("datasets/winequality-red.csv", delimiter = ",")
 
+    now = datetime.now()
+    current_time = now.strftime("%H:%M:%S")
+    print("Current Time =", current_time)
+
     # Running the linear regression over the wine data
     #wine_weights, wine_MSE = multiple_linear_regression(wine_data_df, wine_features, "quality")
+
+    now = datetime.now()
+    current_time = now.strftime("%H:%M:%S")
+    print("Current Time =", current_time)
 
     # Printing the final weights and MSE
     #print("Final Wine Weights: " + str(wine_weights))
@@ -42,10 +52,11 @@ def main():
             data["x"] = (data["x"] - x_min) / (x_max - x_min)
 
     polynomial_values = [2, 3, 5]
-    alphas = [0.0005, 0.001]
-    weight_mins = [-2, 0]
-    weight_maxes = [2, 0.5]
-    epochs = [4500, 1]
+    # 0.0005 is lower bound for n=2 working
+    alphas = [0.0075, 0.001]
+    weight_mins = [0, 0]
+    weight_maxes = [1, 1]
+    epochs = [4500, 4500]
 
     for index in range(2):
         for poly_value in polynomial_values:
@@ -54,9 +65,6 @@ def main():
             print("Synthetic " + str(index+1) + " Weights: " + str(weights))
             print("Synthetic " + str(index+1) + " MSE: " + str(MSE))
             print()
-
-
-
 
 # main()
 
@@ -71,7 +79,7 @@ def multiple_linear_regression(dataset, features, class_label):
 
     # Parameters
     y_values = dataset[class_label].to_numpy()
-    epochs = 80
+    epochs = 750
     alpha = 0.0001
     MSE = 0
 
