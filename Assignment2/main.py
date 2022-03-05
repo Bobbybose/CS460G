@@ -22,17 +22,19 @@ def main():
     wine_data_df = pd.read_csv("datasets/winequality-red.csv", delimiter = ",")
 
     # For testing
-    now = datetime.now()
-    current_time = now.strftime("%H:%M:%S")
-    print("Current Time =", current_time)
+    #now = datetime.now()
+    #current_time = now.strftime("%H:%M:%S")
+    #print("Current Time =", current_time)
+    #print("")
 
+    print("Running Linear Regression on Wine Data")    
     # Running the linear regression over the wine data
     wine_weights, wine_MSE = multiple_linear_regression(wine_data_df, wine_features, "quality")
 
     # For testing
-    now = datetime.now()
-    current_time = now.strftime("%H:%M:%S")
-    print("Current Time =", current_time)
+    #now = datetime.now()
+    #current_time = now.strftime("%H:%M:%S")
+    #print("Current Time =", current_time)
 
     # Printing the final weights and MSE
     print("Final Wine Weights: " + str(wine_weights))
@@ -75,7 +77,7 @@ def main():
     # Running polynomial regression on both datasets for all n values
     for index in range(2):
         for poly_value in polynomial_values:
-            print("Synthetic " + str(index+1) + " Polynomial Regression for n=" + str(poly_value))
+            print("\nSynthetic " + str(index+1) + " Polynomial Regression for n=" + str(poly_value))
             
             weights, MSE = polynomial_regression(synthetic_dataset_list[index], poly_value, alphas[index], weight_mins[index], weight_maxes[index], epochs[index])
             final_weights[index].append(weights.tolist())
@@ -150,7 +152,7 @@ def multiple_linear_regression(dataset, features, class_label):
 
     # Parameters
     y_values = dataset[class_label].to_numpy()
-    epochs = 750
+    epochs = 800
     alpha = 0.0001
     MSE = 0
 
