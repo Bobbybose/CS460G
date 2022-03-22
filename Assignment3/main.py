@@ -15,6 +15,7 @@ def main():
     training_dataset_df = pd.read_csv("datasets/mnist_train_0_1.csv")
     test_dataset_df = pd.read_csv("datasets/mnist_test_0_1.csv")
     
+    # Splitting data into x and y and normalizing
     training_data_x = list(map(lambda x: x/255, training_dataset_df.iloc[:, 1:].to_numpy()))
     training_data_y = list(training_dataset_df.iloc[:, 0])
     test_data_x = list(map(lambda x: x/255, test_dataset_df.iloc[:, 1:].to_numpy()))
