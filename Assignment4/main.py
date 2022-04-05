@@ -7,6 +7,9 @@ import torch
 from torch import nn
 
 
+device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+
+
 class RNN(nn.Module):
     def __init__(self, input_size, output_size, hidden_size, num_layers):
         super(RNN, self).__init__()
@@ -17,13 +20,14 @@ class RNN(nn.Module):
 
         # Creating RNN
         self.rnn = nn.RNN(input_size, hidden_size, num_layers, batch_first = True)
-        # Output layer
+        # Output (fully connected) layer
         self.fc = nn.Linear(hidden_size, output_size)
 
 
     def forward(self, x):
         # Initializing hidden state
         hidden_state = torch.zeros(self.num_layers, 1, self.hidden_size)
+        hidden_state = hidden_state.to(device)
 
         # Running input through RNN
         output, hidden_state = self.rnn(x, hidden_state)
@@ -37,7 +41,8 @@ class RNN(nn.Module):
         return output, hidden_state
 
 
-def main():
+def main():    
+
     # Reading in training data
     tiny_shakespeare = open('tiny-shakespeare.txt', 'r')
     sentences = [line for line in tiny_shakespeare.readlines() if line.strip()]
@@ -66,8 +71,10 @@ def main():
     # Size of training vocabulary
     vocab_size = len(charToInt)
 
+
     # Initializing the RNN model
-    model = RNN(vocab_size, vocab_size, 300, 1)
+    model = RNN(vocab_size, vocab_size, 100, 2)
+    model.to(device)
 
     # Initializing loss function
     loss = nn.CrossEntropyLoss()
@@ -76,16 +83,18 @@ def main():
     optimizer = torch.optim.Adam(model.parameters())
 
     # Training the RNN
-    for epoch in range(5):
+    for epoch in range(10):
         for i in range(len(input_sequence)):
             # Zeroing out gradients
             optimizer.zero_grad()
             
             # Creating a tensor for the input
             x = torch.from_numpy(create_one_hot(input_sequence[i], vocab_size))
+            x = x.to(device)
 
             # Sequence output for input
             y = torch.Tensor(target_sequence[i])
+            y = y.to(device)
 
             # Running the RNN
             output, hidden = model(x)
@@ -96,13 +105,45 @@ def main():
 
         print("Loss: " + str(lossValue.item()))
 
+    print(sample(model, 100, charToInt, intToChar, vocab_size))
+
 
 def create_one_hot(sequence, vocab_size):
+    # 1 is for batch size
     encoding = np.zeros((1, len(sequence), vocab_size), dtype=np.float32)
     for i in range(len(sequence)):
         encoding[0, i, sequence[i]] = 1
     
     return encoding
+
+
+def predict(model, character, charToInt, intToChar, vocab_size):
+
+    charInput = np.array([charToInt[c] for c in character])
+
+    charInput = create_one_hot(charInput, vocab_size)
+
+    charInput = torch.from_numpy(charInput)
+    charInput = charInput.to(device)
+
+    out, hidden = model(charInput)
+
+    prob = nn.functional.softmax(out[-1], dim=0).data
+
+    char_index = torch.max(prob, dim=0)[1].item()
+
+    return intToChar[char_index], hidden
+
+
+def sample(model, out_length, charToInt, intToChar, vocab_size, start='MARCIUS:'):
+    characters = [c for c in start]
+    currSize = out_length - len(characters)
+
+    for i in range(currSize):
+        character, hidden_state = predict(model, characters, charToInt, intToChar, vocab_size)
+        characters.append(character)
+    
+    return ''.join(characters)
 
 
 main()
