@@ -2,9 +2,10 @@
 # Assignment 3: Text Generation with RNNs
 # Note: Based off of example by Dr. Brent Harrison showed during class
 
+from re import L
 import numpy as np
 import torch
-from torch import nn
+from torch import le, nn
 
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -45,6 +46,7 @@ def main():
 
     # Reading in training data
     tiny_shakespeare = open('tiny-shakespeare.txt', 'r')
+    #sentences = tiny_shakespeare.readlines()
     sentences = [line for line in tiny_shakespeare.readlines() if line.strip()]
 
     # Making a list of characters in training data
@@ -68,12 +70,27 @@ def main():
         input_sequence[i] = [charToInt[character] for character in input_sequence[i]]
         target_sequence[i] = [charToInt[character] for character in target_sequence[i]]
 
+    # Splitting data into 33 batches
+    # ~1000 sentences per batch
+    # batches_input = [batch_num][sentence_num]
+    # Creating batch arrays
+    batches_input = []
+    batches_output = []
+    for i in range(33):
+        batches_input[i] = []
+        batches_output[i] = []
+
+    # FIlling the batch arrays with sentences
+    for i in range(len(sentences)):
+        batches_input[i%33].append(sentences[i])
+        batches_output[i%33].append(sentences[i])
+
     # Size of training vocabulary
     vocab_size = len(charToInt)
 
 
     # Initializing the RNN model
-    model = RNN(vocab_size, vocab_size, 100, 2)
+    model = RNN(vocab_size, vocab_size, 300, 2)
     model.to(device)
 
     # Initializing loss function
@@ -135,7 +152,7 @@ def predict(model, character, charToInt, intToChar, vocab_size):
     return intToChar[char_index], hidden
 
 
-def sample(model, out_length, charToInt, intToChar, vocab_size, start='MARCIUS:'):
+def sample(model, out_length, charToInt, intToChar, vocab_size, start='Q U E E N :'):
     characters = [c for c in start]
     currSize = out_length - len(characters)
 
