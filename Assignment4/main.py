@@ -2,14 +2,12 @@
 # Assignment 3: Text Generation with RNNs
 # Note: Based off of example by Dr. Brent Harrison showed during class
 
-from re import L
 import numpy as np
 import torch
-from torch import le, nn
 
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-
+BATCH_SIZE = 33
 
 class RNN(nn.Module):
     def __init__(self, input_size, output_size, hidden_size, num_layers):
@@ -27,14 +25,16 @@ class RNN(nn.Module):
 
     def forward(self, x):
         # Initializing hidden state
-        hidden_state = torch.zeros(self.num_layers, 1, self.hidden_size)
+        # 1 is for batch size
+        hidden_state = torch.zeros(self.num_layers, BATCH_SIZE, self.hidden_size)
         hidden_state = hidden_state.to(device)
-
+        
         # Running input through RNN
-        output, hidden_state = self.rnn(x, hidden_state)
+        if (len(x) == BATCH_SIZE):
+            output, hidden_state = self.rnn(x, hidden_state)
 
         # Reforming because not doing batches
-        output = output.contiguous().view(-1, self.hidden_size)
+        #output = output.contiguous().view(-1, self.hidden_size)
 
         # Receiving output from fully connected layer
         output = self.fc(output)
@@ -75,15 +75,15 @@ def main():
     # batches_input = [batch_num][sentence_num]
     # Creating batch arrays
     batches_input = []
-    batches_output = []
-    for i in range(33):
-        batches_input[i] = []
-        batches_output[i] = []
+    batches_target = []
+    for i in range(BATCH_SIZE):
+        batches_input.append([])
+        batches_target.append([])
 
     # FIlling the batch arrays with sentences
     for i in range(len(sentences)):
-        batches_input[i%33].append(sentences[i])
-        batches_output[i%33].append(sentences[i])
+        batches_input[i%BATCH_SIZE].append(input_sequence[i])
+        batches_target[i%BATCH_SIZE].append(target_sequence[i])
 
     # Size of training vocabulary
     vocab_size = len(charToInt)
@@ -101,24 +101,28 @@ def main():
 
     # Training the RNN
     for epoch in range(10):
-        for i in range(len(input_sequence)):
-            # Zeroing out gradients
-            optimizer.zero_grad()
-            
-            # Creating a tensor for the input
-            x = torch.from_numpy(create_one_hot(input_sequence[i], vocab_size))
-            x = x.to(device)
+        # Cycling through the batches
+        for batch_index in range(len(batches_input)):
+            # Cycling through each input in the batch
+            for input_index in range(len(batches_input[batch_index])):
+                # Zeroing out gradients
+                optimizer.zero_grad()
+                
+                # Creating a tensor for the input
+                x = torch.from_numpy(create_one_hot(batches_input[batch_index][input_index], vocab_size))
+                x = x.to(device)
 
-            # Sequence output for input
-            y = torch.Tensor(target_sequence[i])
-            y = y.to(device)
+                # Sequence output for input
+                #y = torch.Tensor(batches_target[batch_index][input_index])
+                y = torch.from_numpy(create_one_hot(batches_target[batch_index][input_index], vocab_size))
+                y = y.to(device)
 
-            # Running the RNN
-            output, hidden = model(x)
+                # Running the RNN
+                output, hidden = model(x)
 
-            lossValue = loss(output, y.view(-1).long())
-            lossValue.backward()
-            optimizer.step()
+                lossValue = loss(output, y.view(-1).long())
+                lossValue.backward()
+                optimizer.step()
 
         print("Loss: " + str(lossValue.item()))
 
@@ -127,7 +131,7 @@ def main():
 
 def create_one_hot(sequence, vocab_size):
     # 1 is for batch size
-    encoding = np.zeros((1, len(sequence), vocab_size), dtype=np.float32)
+    encoding = np.zeros((BATCH_SIZE, len(sequence), vocab_size), dtype=np.float32)
     for i in range(len(sequence)):
         encoding[0, i, sequence[i]] = 1
     
